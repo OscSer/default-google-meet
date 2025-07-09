@@ -1,8 +1,6 @@
 /* Popup styles for Google Meet Extension */
 body {
     width: 350px;
-    min-height: 200px;
-    max-height: 600px;
     margin: 0;
     padding: 0;
     font-family: 'Google Sans', Arial, sans-serif;

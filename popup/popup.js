@@ -163,9 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event listeners
-    refreshAccountsBtn.addEventListener('click', refreshAccounts);
     retryBtn.addEventListener('click', refreshAccounts);
     
     // Initialize
-    loadAccounts();
+    refreshAccounts();
 });
