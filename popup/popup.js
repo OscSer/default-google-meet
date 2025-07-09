@@ -147,6 +147,40 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners
     retryBtn.addEventListener('click', refreshAccounts);
     
+    // Event listeners
+    retryBtn.addEventListener('click', refreshAccounts);
+    
+    const startMeetBtn = document.getElementById('start-meet-btn');
+    if (startMeetBtn) {
+        startMeetBtn.addEventListener('click', () => {
+            if (accounts.length > 0) {
+                const authUserIndex = defaultAccountIndex;
+                const meetUrl = `https://meet.google.com/new?authuser=${authUserIndex}`;
+                chrome.tabs.create({ url: meetUrl }, (tab) => {
+                    chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, updatedTab) {
+                        if (tabId === tab.id && changeInfo.url && updatedTab.url.startsWith('https://meet.google.com/')) {
+                            const urlWithoutParams = updatedTab.url.split('?')[0];
+                            chrome.scripting.executeScript({
+                                target: { tabId: tab.id },
+                                function: (textToCopy) => {
+                                    navigator.clipboard.writeText(textToCopy).then(() => {
+                                        console.log('Meet URL copied to clipboard:', textToCopy);
+                                    }).catch(err => {
+                                        console.error('Failed to copy Meet URL:', err);
+                                    });
+                                },
+                                args: [urlWithoutParams]
+                            });
+                            chrome.tabs.onUpdated.removeListener(listener);
+                        }
+                    });
+                });
+            } else {
+                alert('No accounts available to start Meet.');
+            }
+        });
+    }
+
     // Initialize
     refreshAccounts();
 });
