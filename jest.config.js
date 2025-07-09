@@ -1,11 +1,8 @@
 const config = {
-  setupFiles: ["./__mocks__/chrome.ts"],
+  setupFiles: ["./__mocks__/chrome.js"],
   testEnvironment: "jsdom",
-  transform: {
-    "^.+.ts$": ["ts-jest", {}],
-  },
   collectCoverageFrom: [
-    "**/*.{js,ts}",
+    "**/*.js",
     "!**/node_modules/**",
     "!**/dist/**"
   ],

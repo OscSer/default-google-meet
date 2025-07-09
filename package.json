@@ -5,9 +5,7 @@
     "test:coverage": "jest --coverage"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "jest": "^30.0.4",
-    "jest-environment-jsdom": "^30.0.4",
-    "ts-jest": "^29.4.0"
+    "jest-environment-jsdom": "^30.0.4"
   }
 }
