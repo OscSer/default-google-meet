@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const contentDiv = document.getElementById('content');
     const errorDiv = document.getElementById('error');
     const accountsContainer = document.getElementById('accounts-container');
-    const refreshAccountsBtn = document.getElementById('refresh-accounts-btn');
     const retryBtn = document.getElementById('retry-btn');
     
     let accounts = [];

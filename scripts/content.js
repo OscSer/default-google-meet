@@ -14,7 +14,6 @@ function detectCurrentAccount() {
   const detectedEmail = detectCurrentEmail();
   
   if (detectedEmail) {
-    console.log(`Detected current email from DOM: ${detectedEmail}`);
     
     // Ask background script to find the authuser for this email
     return new Promise((resolve) => {
@@ -23,10 +22,8 @@ function detectCurrentAccount() {
         email: detectedEmail
       }, (response) => {
         if (response && response.authuser !== null) {
-          console.log(`Found authuser ${response.authuser} for email ${detectedEmail}`);
           resolve(response.authuser);
         } else {
-          console.log(`Could not find authuser for email ${detectedEmail}, defaulting to null`);
           resolve(null);
         }
       });
@@ -112,54 +109,11 @@ function detectCurrentEmail() {
       }
     }
     
-    console.log('Could not detect current email from DOM');
     return null;
   } catch (error) {
     console.error('Error detecting current email:', error);
     return null;
   }
-}
-
-// Function to show redirect notification
-function showRedirectNotification(currentAccount, defaultAccount) {
-  const notification = document.createElement('div');
-  notification.id = 'meet-account-notification';
-  notification.innerHTML = `
-    <div style="
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #1976d2;
-      color: white;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-family: 'Google Sans', Arial, sans-serif;
-      font-size: 14px;
-      z-index: 10000;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      max-width: 300px;
-    ">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <div style="width: 12px; height: 12px; background: #1976d2; border-radius: 50%;"></div>
-        </div>
-        <div>
-          <strong>Account Switched</strong><br>
-          <small>Redirected to your default Google account</small>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(notification);
-  
-  // Auto-remove notification after 5 seconds
-  setTimeout(() => {
-    const notificationElement = document.getElementById('meet-account-notification');
-    if (notificationElement) {
-      notificationElement.remove();
-    }
-  }, 5000);
 }
 
 // Function to check and handle account mismatch

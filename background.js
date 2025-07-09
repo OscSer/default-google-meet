@@ -1,7 +1,6 @@
 // Background script for Google Meet Extension
 chrome.runtime.onInstalled.addListener(() => {
   // Extension installed
-  console.log('Google Meet extension installed');
   
   // Start periodic account refresh
   startPeriodicAccountRefresh();
@@ -22,7 +21,6 @@ function startPeriodicAccountRefresh() {
     refreshStoredAccounts();
   }, REFRESH_INTERVAL);
   
-  console.log('Account refresh system started');
 }
 
 // Store for cached accounts
@@ -30,46 +28,17 @@ let cachedAccounts = [];
 let lastAccountFetch = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Function to detect the current authuser index for a given email using Google's endpoints
-async function detectCurrentAuthuser(email) {
-  try {
-    console.log(`Detecting authuser for email: ${email}`);
-    
-    // Use Google's endpoints to get accounts in the correct order
-    const accounts = await getGoogleAccountsWithAuthuser();
-    
-    console.log('Google accounts:', accounts);
-    
-    // Find the email in the accounts array - the index is the authuser
-    const account = accounts.find(acc => acc.email === email);
-    
-    if (account) {
-      console.log(`Found authuser ${account.authuser} for email ${email} using Google endpoints`);
-      return account.authuser;
-    }
-    
-    console.log(`Could not detect valid authuser for email: ${email}`);
-    return null;
-  } catch (error) {
-    console.error('Error detecting authuser:', error);
-    return null;
-  }
-}
-
 // Function to get all Google accounts with their authuser indices using browser session
 async function getGoogleAccountsWithAuthuser() {
   try {
-    console.log('Getting Google accounts from browser session...');
     
     // Use the enhanced Account Chooser endpoint as the primary method
     const accountChooserAccounts = await getActiveAccountsFromAccountChooser();
     if (accountChooserAccounts.length > 0) {
-      console.log('Found accounts from Account Chooser endpoint:', accountChooserAccounts);
       return accountChooserAccounts;
     }
     
     // Fallback to other cookie/session based methods if the primary one fails
-    console.log('Primary method failed, trying fallbacks...');
     const fallbackAccounts = await getAccountsFromAccountChooserFallback();
     if (fallbackAccounts.length > 0) {
         return fallbackAccounts;
@@ -86,7 +55,6 @@ async function getGoogleAccountsWithAuthuser() {
 // Enhanced method to get active accounts via Google Account Chooser endpoint with cookies
 async function getActiveAccountsFromAccountChooser() {
   try {
-    console.log('Getting active accounts from Account Chooser endpoint...');
     
     const accountChooserUrl = 'https://accounts.google.com/v3/signin/accountchooser?flowName=GlifWebSignIn&flowEntry=AccountChooser';
     
@@ -106,7 +74,6 @@ async function getActiveAccountsFromAccountChooser() {
     clearTimeout(timeoutId);
     
     if (!response.ok) {
-      console.log(`Account Chooser endpoint not accessible: ${response.status} ${response.statusText}`);
       return [];
     }
     
@@ -144,7 +111,6 @@ async function getActiveAccountsFromAccountChooser() {
     
     uniqueAccounts.sort((a, b) => a.authuser - b.authuser);
     
-    console.log('Active accounts from Account Chooser:', uniqueAccounts);
     return uniqueAccounts;
   } catch (error) {
     console.error('Error getting active accounts from Account Chooser:', error);
@@ -155,7 +121,6 @@ async function getActiveAccountsFromAccountChooser() {
 // Fallback method for Account Chooser when primary endpoint fails
 async function getAccountsFromAccountChooserFallback() {
   try {
-    console.log('Using fallback Account Chooser method...');
     
     const fallbackUrl = 'https://accounts.google.com/AccountChooser';
     
@@ -229,7 +194,6 @@ async function extractAccountsFromCookies() {
     }
     
     accounts.sort((a, b) => a.authuser - b.authuser);
-    console.log('Extracted accounts from cookies:', accounts);
     return accounts;
   } catch (error) {
     console.error('Error extracting accounts from cookies:', error);
@@ -240,7 +204,6 @@ async function extractAccountsFromCookies() {
 // Function to refresh stored accounts based on active browser accounts
 async function refreshStoredAccounts() {
   try {
-    console.log('Refreshing stored accounts...');
     const [storedAccounts, browserAccounts] = await Promise.all([
         getStoredAccounts(),
         getGoogleAccountsWithAuthuser()
@@ -292,9 +255,7 @@ async function refreshStoredAccounts() {
       await storeAccounts(newAccounts);
       cachedAccounts = newAccounts;
       lastAccountFetch = Date.now();
-      console.log('Stored accounts have been refreshed.');
     } else {
-      console.log('No changes detected in accounts.');
     }
     
     return newAccounts;
@@ -310,7 +271,6 @@ async function getStoredAccounts() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(['accounts'], (result) => {
       const accounts = result.accounts || [];
-      console.log('Retrieved stored accounts:', accounts);
       resolve(accounts);
     });
   });
@@ -324,7 +284,6 @@ async function storeAccounts(accounts) {
         console.error('Error storing accounts:', chrome.runtime.lastError);
         resolve(false);
       } else {
-        console.log('Accounts stored successfully:', accounts);
         resolve(true);
       }
     });
@@ -361,7 +320,6 @@ async function getAllGoogleAccounts() {
     
     // If no accounts are stored, trigger a refresh
     if (storedAccounts.length === 0) {
-        console.log("No accounts in storage, triggering a refresh...");
         return await refreshStoredAccounts();
     }
     

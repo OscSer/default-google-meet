@@ -135,7 +135,7 @@ h3 {
     margin-top: 16px;
 }
 
-.add-account-btn, .retry-btn {
+.retry-btn {
     background: #1976d2;
     color: white;
     border: none;
@@ -147,7 +147,7 @@ h3 {
     transition: background 0.2s ease;
 }
 
-.add-account-btn:hover, .retry-btn:hover {
+.retry-btn:hover {
     background: #1565c0;
 }
 
