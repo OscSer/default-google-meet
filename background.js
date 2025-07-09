@@ -375,47 +375,6 @@ async function getAllGoogleAccounts() {
   }
 }
 
-// Function to remove an account from storage
-async function removeAccount(accountIndex) {
-  try {
-    const storedAccounts = await getStoredAccounts();
-    
-    if (accountIndex < 0 || accountIndex >= storedAccounts.length) {
-      throw new Error('Invalid account index');
-    }
-    
-    const updatedAccounts = storedAccounts.filter((_, index) => index !== accountIndex);
-    
-    updatedAccounts.forEach((account, index) => {
-      account.index = index;
-      account.authuser = index; // Re-assign authuser based on new order
-    });
-    
-    const stored = await storeAccounts(updatedAccounts);
-    if (!stored) throw new Error('Failed to store updated accounts');
-    
-    cachedAccounts = updatedAccounts;
-    lastAccountFetch = Date.now();
-    
-    chrome.storage.sync.get(['defaultAccount'], (result) => {
-      if (result.defaultAccount === accountIndex) {
-        if (updatedAccounts.length > 0) {
-          chrome.storage.sync.set({ defaultAccount: 0, defaultAuthuser: updatedAccounts[0].authuser });
-        } else {
-          chrome.storage.sync.remove(['defaultAccount', 'defaultAuthuser']);
-        }
-      } else if (result.defaultAccount > accountIndex) {
-        chrome.storage.sync.set({ defaultAccount: result.defaultAccount - 1 });
-      }
-    });
-    
-    return { success: true, accounts: updatedAccounts };
-  } catch (error) {
-    console.error('Error removing account:', error);
-    return { success: false, error: error.message };
-  }
-}
-
 // Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'getAccounts') {
@@ -423,15 +382,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       sendResponse({accounts: accounts});
     }).catch(error => {
       sendResponse({accounts: [], error: error.message});
-    });
-    return true; // Will respond asynchronously
-  }
-  
-  if (request.action === 'removeAccount') {
-    removeAccount(request.accountIndex).then(result => {
-      sendResponse(result);
-    }).catch(error => {
-      sendResponse({success: false, error: error.message});
     });
     return true; // Will respond asynchronously
   }

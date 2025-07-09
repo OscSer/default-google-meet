@@ -151,35 +151,7 @@ h3 {
     background: #1565c0;
 }
 
-.remove-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #f44336;
-    color: white;
-    border: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s ease;
-    opacity: 0;
-    pointer-events: none;
-}
 
-.account-item:hover .remove-btn {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.remove-btn:hover {
-    background: #d32f2f;
-}
 
 .error {
     text-align: center;

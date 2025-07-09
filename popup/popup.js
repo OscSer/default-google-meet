@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         item.appendChild(email);
         item.appendChild(indicator);
-        item.appendChild(removeBtn);
         
         item.addEventListener('click', () => {
             setDefaultAccount(index);
@@ -129,22 +128,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Remove an account
-    function removeAccount(index) {
-        showLoading();
-        
-        chrome.runtime.sendMessage({
-            action: 'removeAccount',
-            accountIndex: index
-        }, (response) => {
-            if (chrome.runtime.lastError || !response.success) {
-                showError();
-                return;
-            }
-            loadAccounts();
-        });
-    }
-    
     // Load default account and render
     function loadDefaultAccountAndRender() {
         chrome.runtime.sendMessage({action: 'getDefaultAccount'}, (defaultResponse) => {
