@@ -12,3 +12,8 @@ coverage/
 .vscode/
 *.crx
 *.pem
+
+# Playwright
+test-results/
+playwright-report/
+.cache/playwright/
