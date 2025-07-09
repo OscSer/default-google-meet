@@ -17,3 +17,5 @@ coverage/
 test-results/
 playwright-report/
 .cache/playwright/
+
+.github/copilot-instructions.md
