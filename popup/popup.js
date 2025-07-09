@@ -156,31 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (accounts.length > 0) {
                 const authUserIndex = defaultAccountIndex;
                 const meetUrl = `https://meet.google.com/new?authuser=${authUserIndex}`;
-                chrome.tabs.create({ url: meetUrl }, (tab) => {
-                    chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, updatedTab) {
-                        if (tabId === tab.id && changeInfo.url && updatedTab.url.startsWith('https://meet.google.com/')) {
-                            const urlWithoutParams = updatedTab.url.split('?')[0];
-                            chrome.scripting.executeScript({
-                                target: { tabId: tab.id },
-                                function: (textToCopy) => {
-                                    navigator.clipboard.writeText(textToCopy).then(() => {
-                                        console.log('Meet URL copied to clipboard:', textToCopy);
-                                        chrome.notifications.create({
-                                            type: 'basic',
-                                            iconUrl: '../images/icon-48.png',
-                                            title: 'Meet URL Copied',
-                                            message: 'The Meet URL has been copied to your clipboard.'
-                                        });
-                                    }).catch(err => {
-                                        console.error('Failed to copy Meet URL:', err);
-                                    });
-                                },
-                                args: [urlWithoutParams]
-                            });
-                            chrome.tabs.onUpdated.removeListener(listener);
-                        }
-                    });
-                });
+                chrome.tabs.create({ url: meetUrl });
             } else {
                 alert('No accounts available to start Meet.');
             }
