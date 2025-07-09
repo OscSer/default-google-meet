@@ -1,21 +1,35 @@
+# Dependencies
 node_modules/
+.npm
+
+# Build outputs
 dist/
+*.tsbuildinfo
+
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.npm
-.eslintcache
-coverage/
-*.tsbuildinfo
-.DS_Store
-.vscode/
-*.crx
-*.pem
 
-# Playwright
+# Testing
+coverage/
+.eslintcache
+
+# Testing - Playwright
 test-results/
 playwright-report/
 .cache/playwright/
 
+# IDE/Editor
+.vscode/
+
+# OS
+.DS_Store
+
+# Extension specific
+*.crx
+*.pem
+
+# Copilot
 .github/copilot-instructions.md
