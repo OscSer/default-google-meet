@@ -2,20 +2,45 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        body {
-            width: 300px;
-            height: 200px;
-            padding: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <h1>Google Meet Extension</h1>
-    <div id="content">
-        <p>Extension is active!</p>
-        <button id="actionBtn">Action</button>
+    <div class="container">
+        <h1>Google Meet Account Selector</h1>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading accounts...</p>
+        </div>
+        
+        <div id="content" class="content hidden">
+            <div id="current-account" class="current-account">
+                <h3>Current Default Account:</h3>
+                <div id="default-account-info" class="account-info">
+                    <div class="account-avatar"></div>
+                    <div class="account-details">
+                        <div class="account-name">Not set</div>
+                        <div class="account-email">Please select a default account</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="accounts-list" class="accounts-list">
+                <h3>Available Accounts:</h3>
+                <div id="accounts-container"></div>
+            </div>
+            
+            <div id="refresh-container" class="refresh-container">
+                <button id="refresh-btn" class="refresh-btn">Refresh Accounts</button>
+            </div>
+        </div>
+        
+        <div id="error" class="error hidden">
+            <p>Unable to load Google accounts. Please make sure you're signed in to Google.</p>
+            <button id="retry-btn" class="retry-btn">Retry</button>
+        </div>
     </div>
+    
     <script src="popup.js"></script>
 </body>
 </html>

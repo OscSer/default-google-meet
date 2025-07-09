@@ -1,11 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Google Meet Extension",
+  "name": "Google Meet Account Selector",
   "version": "1.0",
   "description": "Chrome extension for Google Meet",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3e1fY/q/xw2LA7+TB5EG2EN9fT+JHkyFQ4CQbv4DFR/j2cBuRER/LBqKgbdWWe5L2F4LmzHHOJb61Y/PxqrV6aKbEXCm8+W00DBLVNevb7Ofbn6pUF+byHpdJIX08SoGsS3Z0rnuqnB9CivZvTrNVIhYQrf6fgoUaAkdrRUdBrQ01wHEAGOUmxwcd7wBpACzs/CLiGWwJuTJpxvG8tcyQknWGBNrceeHdH2ZwJWOsgCuqNdFGMHWhWARrqaMKG3BSq/w3F4v7RVu4hyS4kj7NBPGHQfCipHmifrjkzVZWhCFjHhCyWIRitOohC7jsMy23AM2aiBaal3jhPBXldje9QIDAQAB",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "tabs",
+    "scripting",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://accounts.google.com/*",
+    "https://meet.google.com/*"
   ],
   "background": {
     "service_worker": "background.js"
