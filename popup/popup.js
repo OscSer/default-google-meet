@@ -177,6 +177,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         chrome.runtime.sendMessage({action: 'refreshAccounts'}, (response) => {
             if (chrome.runtime.lastError) {
+                console.error('Runtime error:', chrome.runtime.lastError.message);
+                showError();
+                return;
+            }
+            
+            if (response && response.error) {
+                console.error('Refresh error:', response.error);
                 showError();
                 return;
             }
@@ -197,6 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showContent();
                 });
             } else {
+                console.error('No accounts returned or empty response');
                 showError();
             }
         });

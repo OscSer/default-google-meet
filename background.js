@@ -138,17 +138,6 @@ async function getAllGoogleAccounts() {
 // Function to clear cached token and get fresh token
 async function refreshAuthToken() {
   try {
-    // Clear cached token
-    await new Promise((resolve, reject) => {
-      chrome.identity.removeCachedAuthToken({}, () => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve();
-        }
-      });
-    });
-    
     // Clear cached accounts to force refresh
     cachedAccounts = [];
     lastAccountFetch = 0;
@@ -156,7 +145,8 @@ async function refreshAuthToken() {
     // Get fresh accounts
     return await fetchGoogleAccounts();
   } catch (error) {
-    return [];
+    console.error('Error in refreshAuthToken:', error);
+    throw error; // Re-throw the error instead of returning empty array
   }
 }
 
@@ -174,6 +164,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'refreshAccounts') {
     refreshAuthToken().then(accounts => {
       sendResponse({accounts: accounts});
+    }).catch(error => {
+      console.error('Error in refreshAccounts:', error);
+      sendResponse({error: error.message});
     });
     return true;
   }
