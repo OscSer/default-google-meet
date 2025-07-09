@@ -23,10 +23,10 @@ function startPeriodicAccountRefresh() {
   
 }
 
-// Store for cached accounts
+// Store for cached accounts (cache disabled)
 let cachedAccounts = [];
 let lastAccountFetch = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 0; // Cache disabled
 
 // Function to get all Google accounts with their authuser indices using browser session
 async function getGoogleAccountsWithAuthuser() {
@@ -312,21 +312,7 @@ function constructMeetURL(originalUrl, accountIndex) {
 // Function to get all stored Google accounts
 async function getAllGoogleAccounts() {
   try {
-    if (cachedAccounts.length > 0 && (Date.now() - lastAccountFetch) < CACHE_DURATION) {
-      return cachedAccounts;
-    }
-    
-    const storedAccounts = await getStoredAccounts();
-    
-    // If no accounts are stored, trigger a refresh
-    if (storedAccounts.length === 0) {
-        return await refreshStoredAccounts();
-    }
-    
-    cachedAccounts = storedAccounts;
-    lastAccountFetch = Date.now();
-    
-    return storedAccounts;
+    return await refreshStoredAccounts();
   } catch (error) {
     console.error('Error in getAllGoogleAccounts:', error);
     return [];
