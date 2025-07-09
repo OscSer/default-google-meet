@@ -165,6 +165,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 function: (textToCopy) => {
                                     navigator.clipboard.writeText(textToCopy).then(() => {
                                         console.log('Meet URL copied to clipboard:', textToCopy);
+                                        chrome.notifications.create({
+                                            type: 'basic',
+                                            iconUrl: '../images/icon-48.png',
+                                            title: 'Meet URL Copied',
+                                            message: 'The Meet URL has been copied to your clipboard.'
+                                        });
                                     }).catch(err => {
                                         console.error('Failed to copy Meet URL:', err);
                                     });
