@@ -27,3 +27,23 @@ To set up the project locally, follow these steps:
     - Open Chrome and navigate to `chrome://extensions`.
     - Enable "Developer mode" (top right corner).
     - Click "Load unpacked" and select the `extension/` directory from this project.
+
+## Code Formatting
+
+Este proyecto utiliza [Prettier](https://prettier.io/) para el formateo automático del código y [Husky](https://typicode.github.io/husky/) con [lint-staged](https://github.com/okonet/lint-staged) para ejecutar el formateo automáticamente antes de cada commit.
+
+### Scripts Disponibles
+
+- `npm run format` - Formatea todos los archivos del proyecto
+- `npm run format:check` - Verifica si los archivos están formateados correctamente
+- `npm run format:watch` - Observa cambios y formatea automáticamente
+
+### Pre-commit Hook
+
+El proyecto está configurado con un pre-commit hook que automáticamente:
+
+- Ejecuta Prettier en todos los archivos JavaScript, JSON, HTML, CSS y Markdown que están en el staging area
+- Aplica el formateo automáticamente antes de hacer el commit
+- Asegura que todo el código mantenga un estilo consistente
+
+No necesitas hacer nada especial, simplemente haz commits normalmente y el formateo se aplicará automáticamente.
