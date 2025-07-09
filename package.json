@@ -6,9 +6,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "format:watch": "prettier --write . --watch",
-    "lint": "prettier --check ."
+    "lint": "prettier --check .",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "prettier": "^3.0.0"
   },
   "keywords": [
@@ -17,5 +20,10 @@
     "account-selector"
   ],
   "author": "Oscar Serna",
-  "license": "MIT"
+  "license": "MIT",
+  "lint-staged": {
+    "*.{js,json,html,css,md}": [
+      "prettier --write"
+    ]
+  }
 }
