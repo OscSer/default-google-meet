@@ -1,31 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="popup.css">
-</head>
-<body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
     <div class="container">
-        <h1>Google Meet Account Selector</h1>
-        
-        <div id="content" class="content">
-            <div id="accounts-list" class="accounts-container">
-                <div id="accounts-container"></div>
-            </div>
-            
-            <button id="start-meet-btn" class="button">Start Meet</button>
+      <h1>Google Meet Account Selector</h1>
+
+      <div id="content" class="content">
+        <div id="accounts-list" class="accounts-container">
+          <div id="accounts-container"></div>
         </div>
-        
-        <div id="loading" class="loading hidden">
-            <div class="spinner"></div>
-        </div>
-        
-        <div id="error" class="error hidden">
-            <p>Could not find any active Google accounts in your browser. Please sign in to a Google account and click Refresh.</p>
-            <button id="retry-btn" class="retry-btn">Refresh</button>
-        </div>
+
+        <button id="start-meet-btn" class="button">Start Meet</button>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="error" class="error hidden">
+        <p>
+          Could not find any active Google accounts in your browser. Please sign
+          in to a Google account and click Refresh.
+        </p>
+        <button id="retry-btn" class="retry-btn">Refresh</button>
+      </div>
     </div>
-    
+
     <script src="popup.js"></script>
-</body>
+  </body>
 </html>

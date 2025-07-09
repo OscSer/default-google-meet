@@ -1,200 +1,206 @@
 body {
-    width: 300px;
-    margin: 0;
-    padding: 0;
-    font-family: 'Google Sans', Arial, sans-serif;
-    background: #f8f9fa;
+  width: 300px;
+  margin: 0;
+  padding: 0;
+  font-family: 'Google Sans', Arial, sans-serif;
+  background: #f8f9fa;
 }
 
 .container {
-    padding: 16px;
+  padding: 16px;
 }
 
 h1 {
-    margin: 0 0 16px 0;
-    font-size: 18px;
-    font-weight: 500;
-    color: #1976d2;
-    text-align: center;
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #1976d2;
+  text-align: center;
 }
 
 h3 {
-    margin: 16px 0 8px 0;
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
+  margin: 16px 0 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
 }
 
 .loading {
-    text-align: center;
-    padding: 40px 0;
+  text-align: center;
+  padding: 40px 0;
 }
 
 .spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid #e0e0e0;
-    border-top: 3px solid #1976d2;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 16px auto;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #1976d2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px auto;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .hidden {
-    display: none;
+  display: none;
 }
 
 .current-account {
-    margin-bottom: 24px;
-    padding: 12px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .account-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
 }
 
 .account-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #e0e0e0;
-    background-size: cover;
-    background-position: center;
-    flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
 }
 
 .account-details {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .account-name {
-    font-weight: 500;
-    color: #333;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .account-email {
-    color: #666;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  color: #666;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .accounts-container {
-    margin-bottom: 16px;
+  margin-bottom: 16px;
 }
 
 .account-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    margin-bottom: 8px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid transparent;
-    position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  position: relative;
 }
 
 .account-row:hover {
-    background: #f5f5f5;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  background: #f5f5f5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .account-row.selected {
-    border-color: #1976d2;
-    background: #e3f2fd;
+  border-color: #1976d2;
+  background: #e3f2fd;
 }
 
 .account-row.selected .account-name {
-    color: #1976d2;
+  color: #1976d2;
 }
 
 .add-account-section {
-    text-align: center;
-    margin-top: 16px;
+  text-align: center;
+  margin-top: 16px;
 }
 
 .error {
-    text-align: center;
-    padding: 40px 20px;
-    color: #d32f2f;
+  text-align: center;
+  padding: 40px 20px;
+  color: #d32f2f;
 }
 
 .error p {
-    margin-bottom: 16px;
-    font-size: 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
 }
 
 .status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-left: auto;
-    flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .status-indicator.default {
-    background: #4caf50;
+  background: #4caf50;
 }
 
 .status-indicator.current {
-    background: #ff9800;
+  background: #ff9800;
 }
 
-.button, .retry-btn {
-    background: #1976d2;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s ease;
+.button,
+.retry-btn {
+  background: #1976d2;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .button {
-    width: 100%;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+  width: 100%;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
 }
 
 .retry-btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
-.button:hover, .retry-btn:hover {
-    background: #1565c0;
+.button:hover,
+.retry-btn:hover {
+  background: #1565c0;
 }
 
 .button:hover {
-    box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
-    transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+  transform: translateY(-1px);
 }
 
 .button:active {
-    background: #0d47a1;
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(25, 118, 210, 0.2);
+  background: #0d47a1;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(25, 118, 210, 0.2);
 }

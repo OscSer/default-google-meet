@@ -1,1 +1,21 @@
-{}
+{
+  "name": "google-meet-account-selector",
+  "version": "1.0.0",
+  "description": "Chrome extension that helps users avoid joining Google Meet calls with the wrong account",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:watch": "prettier --write . --watch",
+    "lint": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "google-meet",
+    "account-selector"
+  ],
+  "author": "Oscar Serna",
+  "license": "MIT"
+}
