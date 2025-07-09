@@ -1,4 +1,3 @@
-// Popup script for Google Meet Extension
 document.addEventListener("DOMContentLoaded", function () {
   const contentDiv = document.getElementById("content");
   const errorDiv = document.getElementById("error");
@@ -9,32 +8,27 @@ document.addEventListener("DOMContentLoaded", function () {
   let accounts = [];
   let defaultAccountIndex = 0;
 
-
-  // Show content
   function showContent() {
     contentDiv.classList.remove("hidden");
     errorDiv.classList.add("hidden");
     loadingDiv.classList.add("hidden");
   }
 
-  // Show error
   function showError() {
     contentDiv.classList.add("hidden");
     loadingDiv.classList.add("hidden");
     errorDiv.classList.remove("hidden");
   }
 
-  // Show loading
   function showLoading() {
     contentDiv.classList.add("hidden");
     errorDiv.classList.add("hidden");
     loadingDiv.classList.remove("hidden");
   }
 
-  // Create account item element
-  function createAccountItem(account, index, isDefault) {
+  function createAccountElement(account, index, isDefault) {
     const item = document.createElement("div");
-    item.className = `account-item ${isDefault ? "selected" : ""}`;
+    item.className = `account-row ${isDefault ? "selected" : ""}`;
     item.dataset.index = index;
 
     const email = document.createElement("div");
@@ -43,15 +37,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const indicator = document.createElement("div");
     indicator.className = `status-indicator ${isDefault ? "default" : ""}`;
-
-    const removeBtn = document.createElement("button");
-    removeBtn.className = "remove-btn";
-    removeBtn.innerHTML = "×";
-    removeBtn.title = "Remove account";
-    removeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      removeAccount(index);
-    });
 
     item.appendChild(email);
     item.appendChild(indicator);
@@ -63,25 +48,23 @@ document.addEventListener("DOMContentLoaded", function () {
     return item;
   }
 
-  // Render accounts list
   function renderAccounts() {
     accountsContainer.innerHTML = "";
 
-    accounts.forEach((account, arrayIndex) => {
-      const item = createAccountItem(
+    accounts.forEach((account, index) => {
+      const item = createAccountElement(
         account,
-        arrayIndex,
-        arrayIndex === defaultAccountIndex
+        index,
+        index === defaultAccountIndex
       );
       accountsContainer.appendChild(item);
     });
   }
 
-  // Set default account
   function setDefaultAccount(index) {
     defaultAccountIndex = index;
 
-    document.querySelectorAll(".account-item").forEach((item, i) => {
+    document.querySelectorAll(".account-row").forEach((item, i) => {
       item.classList.toggle("selected", i === index);
       const indicator = item.querySelector(".status-indicator");
       indicator.className = `status-indicator ${i === index ? "default" : ""}`;
@@ -93,48 +76,35 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-
-  // Load accounts without cache - always fresh
-  function loadAccountsWithoutCache() {
+  function loadAccounts() {
     showLoading();
-    const startTime = Date.now();
     
     refreshAccounts().then(() => {
-      const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, 500 - elapsed);
-      
       setTimeout(() => {
         if (accounts.length === 0) {
           showError();
         } else {
-          loadDefaultAccountAndRender();
+          renderDefaultAccount();
         }
-      }, remainingTime);
+      }, 500);
     });
   }
 
-  // Refresh accounts from browser session
   function refreshAccounts() {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ action: "refreshAccounts" }, (response) => {
         if (chrome.runtime.lastError || !response.success) {
-          console.error(
-            "Failed to refresh accounts:",
-            chrome.runtime.lastError || response.error
-          );
           resolve();
           return;
         }
         
-        // Update accounts array with refreshed data
         accounts = response.accounts || [];
         resolve();
       });
     });
   }
 
-  // Load default account and render
-  function loadDefaultAccountAndRender() {
+  function renderDefaultAccount() {
     if (accounts.length === 0) {
       showError();
       return;
@@ -158,9 +128,8 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  // Event listeners
   retryBtn.addEventListener("click", () => {
-    loadAccountsWithoutCache();
+    loadAccounts();
   });
 
   const startMeetBtn = document.getElementById("start-meet-btn");
@@ -176,6 +145,5 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Initialize
-  loadAccountsWithoutCache();
+  loadAccounts();
 });

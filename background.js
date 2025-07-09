@@ -1,65 +1,44 @@
-// Background script for Google Meet Extension
 chrome.runtime.onInstalled.addListener(() => {
-  // Extension installed
-  
-  // Start periodic account refresh
-  startPeriodicAccountRefresh();
+  startAccountRefresh();
 });
 
-// Start periodic account refresh
-function startPeriodicAccountRefresh() {
-  // Refresh accounts every 30 minutes
-  const REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
+function startAccountRefresh() {
+  const REFRESH_INTERVAL = 30 * 60 * 1000;
   
-  // Initial refresh after 5 seconds
   setTimeout(() => {
-    refreshStoredAccounts();
+    refreshAccounts();
   }, 5000);
   
-  // Periodic refresh
   setInterval(() => {
-    refreshStoredAccounts();
+    refreshAccounts();
   }, REFRESH_INTERVAL);
-  
 }
 
-// Store for cached accounts (cache disabled)
-let cachedAccounts = [];
-let lastAccountFetch = 0;
-const CACHE_DURATION = 0; // Cache disabled
-
-// Function to get all Google accounts with their authuser indices using browser session
-async function getGoogleAccountsWithAuthuser() {
+async function getActiveGoogleAccounts() {
   try {
-    
-    // Use the enhanced Account Chooser endpoint as the primary method
-    const accountChooserAccounts = await getActiveAccountsFromAccountChooser();
+    const accountChooserAccounts = await getAccountsFromChooser();
     if (accountChooserAccounts.length > 0) {
       return accountChooserAccounts;
     }
     
-    // Fallback to other cookie/session based methods if the primary one fails
-    const fallbackAccounts = await getAccountsFromAccountChooserFallback();
+    const fallbackAccounts = await getAccountsFallback();
     if (fallbackAccounts.length > 0) {
         return fallbackAccounts;
     }
 
-    return await extractAccountsFromCookies();
+    return await getAccountsFromCookies();
 
   } catch (error) {
-    console.error('Error getting Google accounts:', error);
     return [];
   }
 }
 
-// Enhanced method to get active accounts via Google Account Chooser endpoint with cookies
-async function getActiveAccountsFromAccountChooser() {
+async function getAccountsFromChooser() {
   try {
-    
     const accountChooserUrl = 'https://accounts.google.com/v3/signin/accountchooser?flowName=GlifWebSignIn&flowEntry=AccountChooser';
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     const response = await fetch(accountChooserUrl, {
       method: 'GET',
@@ -80,7 +59,6 @@ async function getActiveAccountsFromAccountChooser() {
     const responseText = await response.text();
     
     if (!responseText || responseText.length < 100) {
-      console.warn('Account Chooser response seems empty or too short.');
       return [];
     }
     
@@ -104,7 +82,6 @@ async function getActiveAccountsFromAccountChooser() {
         });
     }
     
-    // Remove duplicates based on email
     const uniqueAccounts = accounts.filter((account, index, self) =>
       index === self.findIndex(a => a.email === account.email)
     );
@@ -113,15 +90,12 @@ async function getActiveAccountsFromAccountChooser() {
     
     return uniqueAccounts;
   } catch (error) {
-    console.error('Error getting active accounts from Account Chooser:', error);
     return [];
   }
 }
 
-// Fallback method for Account Chooser when primary endpoint fails
-async function getAccountsFromAccountChooserFallback() {
+async function getAccountsFallback() {
   try {
-    
     const fallbackUrl = 'https://accounts.google.com/AccountChooser';
     
     const response = await fetch(fallbackUrl, {
@@ -153,13 +127,11 @@ async function getAccountsFromAccountChooserFallback() {
     }
     return [];
   } catch (error) {
-    console.error('All fallback methods failed:', error);
     return [];
   }
 }
 
-// Helper function to extract accounts from cookies
-async function extractAccountsFromCookies() {
+async function getAccountsFromCookies() {
   try {
     const accounts = [];
     const cookies = await new Promise((resolve, reject) => {
@@ -196,21 +168,18 @@ async function extractAccountsFromCookies() {
     accounts.sort((a, b) => a.authuser - b.authuser);
     return accounts;
   } catch (error) {
-    console.error('Error extracting accounts from cookies:', error);
     return [];
   }
 }
 
-// Function to refresh stored accounts based on active browser accounts
-async function refreshStoredAccounts() {
+async function refreshAccounts() {
   try {
     const [storedAccounts, browserAccounts] = await Promise.all([
         getStoredAccounts(),
-        getGoogleAccountsWithAuthuser()
+        getActiveGoogleAccounts()
     ]);
 
     if (browserAccounts.length === 0) {
-        console.warn("Could not fetch any active accounts from browser. Aborting refresh.");
         return;
     }
 
@@ -218,14 +187,13 @@ async function refreshStoredAccounts() {
     
     const newAccounts = browserAccounts.map((browserAccount, index) => {
         const existingAccount = storedAccounts.find(sa => sa.email === browserAccount.email);
-        const newAuthUser = index; // The authuser is simply the order in the session
+        const newAuthUser = index;
 
         if (existingAccount) {
             if (existingAccount.authuser !== newAuthUser) {
                 existingAccount.authuser = newAuthUser;
                 hasChanges = true;
             }
-            // Ensure index is also updated
             if (existingAccount.index !== index) {
                 existingAccount.index = index;
                 hasChanges = true;
@@ -246,27 +214,20 @@ async function refreshStoredAccounts() {
         }
     });
 
-    // Check if the number of accounts has changed
     if (newAccounts.length !== storedAccounts.length) {
         hasChanges = true;
     }
 
     if (hasChanges) {
       await storeAccounts(newAccounts);
-      cachedAccounts = newAccounts;
-      lastAccountFetch = Date.now();
-    } else {
     }
     
     return newAccounts;
   } catch (error) {
-    console.error('Error refreshing stored accounts:', error);
     return await getStoredAccounts();
   }
 }
 
-
-// Function to get stored accounts from cache
 async function getStoredAccounts() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(['accounts'], (result) => {
@@ -276,12 +237,10 @@ async function getStoredAccounts() {
   });
 }
 
-// Function to store accounts in cache
 async function storeAccounts(accounts) {
   return new Promise((resolve) => {
     chrome.storage.sync.set({ accounts: accounts }, () => {
       if (chrome.runtime.lastError) {
-        console.error('Error storing accounts:', chrome.runtime.lastError);
         resolve(false);
       } else {
         resolve(true);
@@ -290,7 +249,6 @@ async function storeAccounts(accounts) {
   });
 }
 
-// Function to get current active account from a Google Meet URL
 function getCurrentAccountFromURL(url) {
   const urlObj = new URL(url);
   const authuser = urlObj.searchParams.get('authuser');
@@ -302,24 +260,20 @@ function getCurrentAccountFromURL(url) {
   return null;
 }
 
-// Function to construct Google Meet URL with authuser parameter
 function constructMeetURL(originalUrl, accountIndex) {
   const url = new URL(originalUrl);
   url.searchParams.set('authuser', accountIndex.toString());
   return url.toString();
 }
 
-// Function to get all stored Google accounts
 async function getAllGoogleAccounts() {
   try {
-    return await refreshStoredAccounts();
+    return await refreshAccounts();
   } catch (error) {
-    console.error('Error in getAllGoogleAccounts:', error);
     return [];
   }
 }
 
-// Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'getAccounts') {
     getAllGoogleAccounts().then(accounts => {
@@ -327,7 +281,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }).catch(error => {
       sendResponse({accounts: [], error: error.message});
     });
-    return true; // Will respond asynchronously
+    return true;
   }
   
   if (request.action === 'getDefaultAccount') {
@@ -360,7 +314,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   if (request.action === 'refreshAccounts') {
-    refreshStoredAccounts().then(accounts => {
+    refreshAccounts().then(accounts => {
         sendResponse({success: true, accounts: accounts});
     }).catch(error => {
         sendResponse({success: false, error: error.message});
@@ -389,7 +343,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           return;
         }
 
-        // The authuser should match the index in the new system
         defaultAuthuser = defaultAccountObj.index;
         
         const needsRedirect = (currentAccount === null && defaultAuthuser !== 0) || (currentAccount !== null && currentAccount !== defaultAuthuser);
@@ -407,7 +360,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           sendResponse({needsRedirect: false, reason: 'Account matches'});
         }
       } catch (error) {
-        console.error('Error in checkAccountMismatch:', error);
         sendResponse({needsRedirect: false, reason: 'Error occurred', error: error.message});
       }
     });
