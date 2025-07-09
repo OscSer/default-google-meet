@@ -9,7 +9,6 @@
     "storage",
     "tabs",
     "scripting",
-    "identity",
     "cookies"
   ],
   "host_permissions": [

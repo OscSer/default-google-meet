@@ -3,9 +3,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingDiv = document.getElementById('loading');
     const contentDiv = document.getElementById('content');
     const errorDiv = document.getElementById('error');
-    const defaultAccountInfo = document.getElementById('default-account-info');
     const accountsContainer = document.getElementById('accounts-container');
-    const addAccountBtn = document.getElementById('add-account-btn');
+    const refreshAccountsBtn = document.getElementById('refresh-accounts-btn');
     const retryBtn = document.getElementById('retry-btn');
     
     let accounts = [];
@@ -58,15 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
         item.appendChild(indicator);
         item.appendChild(removeBtn);
         
-        // Add click handler
         item.addEventListener('click', () => {
             setDefaultAccount(index);
         });
         
         return item;
     }
-    
-    // Function no longer needed - removed default account display
     
     // Render accounts list
     function renderAccounts() {
@@ -82,19 +78,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function setDefaultAccount(index) {
         defaultAccountIndex = index;
         
-        // Update visual selection
         document.querySelectorAll('.account-item').forEach((item, i) => {
             item.classList.toggle('selected', i === index);
             const indicator = item.querySelector('.status-indicator');
             indicator.className = `status-indicator ${i === index ? 'default' : ''}`;
         });
         
-        // Save to storage
         chrome.runtime.sendMessage({
             action: 'setDefaultAccount',
             accountIndex: index
-        }, (response) => {
-            // Account saved
         });
     }
     
@@ -111,10 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response && response.accounts) {
                 accounts = response.accounts;
                 
-                // If no accounts exist, automatically start add account flow
                 if (accounts.length === 0) {
-                    console.log('No accounts found, starting add account flow');
-                    addAccount();
+                    showError();
                     return;
                 }
                 
@@ -125,26 +115,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Add a new account
-    function addAccount() {
+    // Refresh accounts from browser session
+    function refreshAccounts() {
         showLoading();
-        
-        chrome.runtime.sendMessage({action: 'addAccount'}, (response) => {
-            if (chrome.runtime.lastError) {
+        chrome.runtime.sendMessage({action: 'refreshAccounts'}, (response) => {
+            if (chrome.runtime.lastError || !response.success) {
+                console.error("Failed to refresh accounts:", chrome.runtime.lastError || response.error);
                 showError();
                 return;
             }
-            
-            if (response && response.success) {
-                // Reload accounts to show the new one
-                loadAccounts();
-            } else {
-                showError();
-                console.error('Error adding account:', response.error);
-            }
+            // After refreshing, reload the accounts to display them
+            loadAccounts();
         });
     }
-    
+
     // Remove an account
     function removeAccount(index) {
         showLoading();
@@ -153,18 +137,11 @@ document.addEventListener('DOMContentLoaded', function() {
             action: 'removeAccount',
             accountIndex: index
         }, (response) => {
-            if (chrome.runtime.lastError) {
+            if (chrome.runtime.lastError || !response.success) {
                 showError();
                 return;
             }
-            
-            if (response && response.success) {
-                // Reload accounts to reflect the change
-                loadAccounts();
-            } else {
-                showError();
-                console.error('Error removing account:', response.error);
-            }
+            loadAccounts();
         });
     }
     
@@ -175,7 +152,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 defaultAccountIndex = 0;
             } else if (defaultResponse) {
                 defaultAccountIndex = defaultResponse.defaultAccount || 0;
-                // Make sure the index is valid
                 if (defaultAccountIndex >= accounts.length) {
                     defaultAccountIndex = 0;
                 }
@@ -187,8 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event listeners
-    addAccountBtn.addEventListener('click', addAccount);
-    retryBtn.addEventListener('click', loadAccounts);
+    refreshAccountsBtn.addEventListener('click', refreshAccounts);
+    retryBtn.addEventListener('click', refreshAccounts);
     
     // Initialize
     loadAccounts();
