@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorDiv = document.getElementById('error');
     const defaultAccountInfo = document.getElementById('default-account-info');
     const accountsContainer = document.getElementById('accounts-container');
-    const refreshBtn = document.getElementById('refresh-btn');
+    const addAccountBtn = document.getElementById('add-account-btn');
     const retryBtn = document.getElementById('retry-btn');
     
     let accounts = [];
@@ -38,32 +38,25 @@ document.addEventListener('DOMContentLoaded', function() {
         item.className = `account-item ${isDefault ? 'selected' : ''}`;
         item.dataset.index = index;
         
-        const avatar = document.createElement('div');
-        avatar.className = 'account-avatar';
-        if (account.profilePicture) {
-            avatar.style.backgroundImage = `url(${account.profilePicture})`;
-        }
-        
-        const details = document.createElement('div');
-        details.className = 'account-details';
-        
-        const name = document.createElement('div');
-        name.className = 'account-name';
-        name.textContent = account.name;
-        
         const email = document.createElement('div');
         email.className = 'account-email';
         email.textContent = account.email;
         
-        details.appendChild(name);
-        details.appendChild(email);
-        
         const indicator = document.createElement('div');
         indicator.className = `status-indicator ${isDefault ? 'default' : ''}`;
         
-        item.appendChild(avatar);
-        item.appendChild(details);
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.title = 'Remove account';
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeAccount(index);
+        });
+        
+        item.appendChild(email);
         item.appendChild(indicator);
+        item.appendChild(removeBtn);
         
         // Add click handler
         item.addEventListener('click', () => {
@@ -73,28 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return item;
     }
     
-    // Update default account display
-    function updateDefaultAccountDisplay() {
-        if (accounts.length === 0) {
-            defaultAccountInfo.querySelector('.account-name').textContent = 'Not set';
-            defaultAccountInfo.querySelector('.account-email').textContent = 'Please select a default account';
-            defaultAccountInfo.querySelector('.account-avatar').style.backgroundImage = '';
-            return;
-        }
-        
-        const account = accounts[defaultAccountIndex];
-        if (account) {
-            defaultAccountInfo.querySelector('.account-name').textContent = account.name;
-            defaultAccountInfo.querySelector('.account-email').textContent = account.email;
-            
-            const avatar = defaultAccountInfo.querySelector('.account-avatar');
-            if (account.profilePicture) {
-                avatar.style.backgroundImage = `url(${account.profilePicture})`;
-            } else {
-                avatar.style.backgroundImage = '';
-            }
-        }
-    }
+    // Function no longer needed - removed default account display
     
     // Render accounts list
     function renderAccounts() {
@@ -104,8 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = createAccountItem(account, arrayIndex, arrayIndex === defaultAccountIndex);
             accountsContainer.appendChild(item);
         });
-        
-        updateDefaultAccountDisplay();
     }
     
     // Set default account
@@ -119,9 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
             indicator.className = `status-indicator ${i === index ? 'default' : ''}`;
         });
         
-        // Update default account display
-        updateDefaultAccountDisplay();
-        
         // Save to storage
         chrome.runtime.sendMessage({
             action: 'setDefaultAccount',
@@ -131,87 +98,96 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Load accounts from background script
+    // Load accounts from storage
     function loadAccounts() {
         showLoading();
         
-        // Get accounts with timeout
-        const timeoutId = setTimeout(() => {
-            showError();
-        }, 30000);
-        
         chrome.runtime.sendMessage({action: 'getAccounts'}, (response) => {
-            clearTimeout(timeoutId);
             if (chrome.runtime.lastError) {
                 showError();
                 return;
             }
             
-            if (response && response.accounts && response.accounts.length > 0) {
+            if (response && response.accounts) {
                 accounts = response.accounts;
                 
-                // Get default account
-                chrome.runtime.sendMessage({action: 'getDefaultAccount'}, (defaultResponse) => {
-                    if (chrome.runtime.lastError) {
-                        defaultAccountIndex = 0;
-                    } else if (defaultResponse) {
-                        defaultAccountIndex = defaultResponse.defaultAccount || 0;
-                        // Make sure the index is valid
-                        if (defaultAccountIndex >= accounts.length) {
-                            defaultAccountIndex = 0;
-                        }
-                    }
-                    
-                    renderAccounts();
-                    showContent();
-                });
+                // If no accounts exist, automatically start add account flow
+                if (accounts.length === 0) {
+                    console.log('No accounts found, starting add account flow');
+                    addAccount();
+                    return;
+                }
+                
+                loadDefaultAccountAndRender();
             } else {
                 showError();
             }
         });
     }
     
-    // Refresh accounts using Identity API
-    function refreshAccounts() {
+    // Add a new account
+    function addAccount() {
         showLoading();
         
-        chrome.runtime.sendMessage({action: 'refreshAccounts'}, (response) => {
+        chrome.runtime.sendMessage({action: 'addAccount'}, (response) => {
             if (chrome.runtime.lastError) {
-                console.error('Runtime error:', chrome.runtime.lastError.message);
                 showError();
                 return;
             }
             
-            if (response && response.error) {
-                console.error('Refresh error:', response.error);
-                showError();
-                return;
-            }
-            
-            if (response && response.accounts && response.accounts.length > 0) {
-                accounts = response.accounts;
-                
-                // Get default account
-                chrome.runtime.sendMessage({action: 'getDefaultAccount'}, (defaultResponse) => {
-                    if (defaultResponse) {
-                        defaultAccountIndex = defaultResponse.defaultAccount || 0;
-                        if (defaultAccountIndex >= accounts.length) {
-                            defaultAccountIndex = 0;
-                        }
-                    }
-                    
-                    renderAccounts();
-                    showContent();
-                });
+            if (response && response.success) {
+                // Reload accounts to show the new one
+                loadAccounts();
             } else {
-                console.error('No accounts returned or empty response');
                 showError();
+                console.error('Error adding account:', response.error);
             }
+        });
+    }
+    
+    // Remove an account
+    function removeAccount(index) {
+        showLoading();
+        
+        chrome.runtime.sendMessage({
+            action: 'removeAccount',
+            accountIndex: index
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                showError();
+                return;
+            }
+            
+            if (response && response.success) {
+                // Reload accounts to reflect the change
+                loadAccounts();
+            } else {
+                showError();
+                console.error('Error removing account:', response.error);
+            }
+        });
+    }
+    
+    // Load default account and render
+    function loadDefaultAccountAndRender() {
+        chrome.runtime.sendMessage({action: 'getDefaultAccount'}, (defaultResponse) => {
+            if (chrome.runtime.lastError) {
+                defaultAccountIndex = 0;
+            } else if (defaultResponse) {
+                defaultAccountIndex = defaultResponse.defaultAccount || 0;
+                // Make sure the index is valid
+                if (defaultAccountIndex >= accounts.length) {
+                    defaultAccountIndex = 0;
+                }
+            }
+            
+            renderAccounts();
+            showContent();
         });
     }
     
     // Event listeners
-    refreshBtn.addEventListener('click', refreshAccounts);
+    addAccountBtn.addEventListener('click', addAccount);
     retryBtn.addEventListener('click', loadAccounts);
     
     // Initialize

@@ -9,11 +9,14 @@
     "storage",
     "tabs",
     "scripting",
-    "identity"
+    "identity",
+    "cookies"
   ],
   "host_permissions": [
     "https://accounts.google.com/*",
-    "https://meet.google.com/*"
+    "https://meet.google.com/*",
+    "https://myaccount.google.com/*",
+    "https://*.google.com/*"
   ],
   "background": {
     "service_worker": "background.js"

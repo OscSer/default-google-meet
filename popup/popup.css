@@ -1,7 +1,8 @@
 /* Popup styles for Google Meet Extension */
 body {
     width: 350px;
-    min-height: 400px;
+    min-height: 200px;
+    max-height: 600px;
     margin: 0;
     padding: 0;
     font-family: 'Google Sans', Arial, sans-serif;
@@ -114,6 +115,7 @@ h3 {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid transparent;
+    position: relative;
 }
 
 .account-item:hover {
@@ -130,12 +132,12 @@ h3 {
     color: #1976d2;
 }
 
-.refresh-container {
+.add-account-container {
     text-align: center;
     margin-top: 16px;
 }
 
-.refresh-btn, .retry-btn {
+.add-account-btn, .retry-btn {
     background: #1976d2;
     color: white;
     border: none;
@@ -147,8 +149,38 @@ h3 {
     transition: background 0.2s ease;
 }
 
-.refresh-btn:hover, .retry-btn:hover {
+.add-account-btn:hover, .retry-btn:hover {
     background: #1565c0;
+}
+
+.remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #f44336;
+    color: white;
+    border: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.account-item:hover .remove-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.remove-btn:hover {
+    background: #d32f2f;
 }
 
 .error {

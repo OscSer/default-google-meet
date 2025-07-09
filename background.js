@@ -21,13 +21,36 @@ async function getUserInfo(token) {
   }
 }
 
-// Function to get all Google accounts using Chrome Identity API
-async function fetchGoogleAccounts() {
-  const now = Date.now();
-  if (cachedAccounts.length > 0 && (now - lastAccountFetch) < CACHE_DURATION) {
-    return cachedAccounts;
-  }
+// Function to get stored accounts from cache
+async function getStoredAccounts() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(['accounts'], (result) => {
+      const accounts = result.accounts || [];
+      console.log('Stored accounts:', accounts);
+      resolve(accounts);
+    });
+  });
+}
 
+// Function to store accounts in cache
+async function storeAccounts(accounts) {
+  return new Promise((resolve) => {
+    chrome.storage.sync.set({ accounts: accounts }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error storing accounts:', chrome.runtime.lastError);
+        resolve(false);
+      } else {
+        console.log('Accounts stored successfully');
+        resolve(true);
+      }
+    });
+  });
+}
+
+
+
+// Function to add a new Google account using Chrome Identity API
+async function addGoogleAccount() {
   try {
     // Use launchWebAuthFlow for web-based OAuth
     const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
@@ -51,51 +74,68 @@ async function fetchGoogleAccounts() {
     });
 
     if (!redirectUrl) {
-      return [];
+      throw new Error('No redirect URL received');
     }
 
-    // Extract access token and authuser from URL
+    // Extract access token from URL
     const urlParams = new URLSearchParams(redirectUrl.split('#')[1]);
     const accessToken = urlParams.get('access_token');
-    const authuser = urlParams.get('authuser');
     
     if (!accessToken) {
-      return [];
+      throw new Error('No access token found');
     }
 
     // Get user info
     const userInfo = await getUserInfo(accessToken);
     if (!userInfo) {
-      return [];
+      throw new Error('Failed to get user info');
     }
 
-    // Create account object with the correct authuser index
-    const account = {
+    // Get existing accounts
+    const existingAccounts = await getStoredAccounts();
+    
+    // Check if account already exists
+    const accountExists = existingAccounts.find(acc => acc.email === userInfo.email);
+    if (accountExists) {
+      console.log('Account already exists:', userInfo.email);
+      return { success: false, error: 'Account already exists', account: accountExists };
+    }
+
+    // Create new account object
+    const newAccount = {
       email: userInfo.email,
       name: userInfo.name || userInfo.email.split('@')[0],
       profilePicture: userInfo.picture,
       id: userInfo.id,
-      index: authuser ? parseInt(authuser) : 0,
-      authuser: authuser ? parseInt(authuser) : 0  // Store the real authuser value
+      index: existingAccounts.length,
+      authuser: existingAccounts.length,
+      addedAt: Date.now()
     };
 
-    cachedAccounts = [account];
-    lastAccountFetch = now;
+    // Add to existing accounts
+    const updatedAccounts = [...existingAccounts, newAccount];
     
-    // Auto-save as default account if no default is set
-    chrome.storage.sync.get(['defaultAccount', 'defaultAuthuser'], (result) => {
-      if (result.defaultAccount === undefined || result.defaultAuthuser === undefined) {
-        chrome.storage.sync.set({
-          defaultAccount: 0, // Array index 0 (first account)
-          defaultAuthuser: account.authuser
-        });
-      }
+    // Store updated accounts
+    const stored = await storeAccounts(updatedAccounts);
+    if (!stored) {
+      throw new Error('Failed to store account');
+    }
+
+    // Update cached accounts
+    cachedAccounts = updatedAccounts;
+    lastAccountFetch = Date.now();
+    
+    // Always set new account as default
+    chrome.storage.sync.set({
+      defaultAccount: newAccount.index,
+      defaultAuthuser: newAccount.authuser
     });
     
-    return cachedAccounts;
+    return { success: true, account: newAccount };
 
   } catch (error) {
-    return [];
+    console.error('Error adding Google account:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -121,7 +161,7 @@ function constructMeetURL(originalUrl, accountIndex) {
   return url.toString();
 }
 
-// Function to get multiple accounts (if available)
+// Function to get all stored Google accounts
 async function getAllGoogleAccounts() {
   try {
     // If we have cached accounts and they're still valid, return them immediately
@@ -129,46 +169,110 @@ async function getAllGoogleAccounts() {
       return cachedAccounts;
     }
     
-    return await fetchGoogleAccounts();
+    // Get accounts from storage
+    const storedAccounts = await getStoredAccounts();
+    
+    // Update cache
+    cachedAccounts = storedAccounts;
+    lastAccountFetch = Date.now();
+    
+    return storedAccounts;
   } catch (error) {
+    console.error('Error in getAllGoogleAccounts:', error);
     return [];
   }
 }
 
-// Function to clear cached token and get fresh token
-async function refreshAuthToken() {
+// Function to remove an account from storage
+async function removeAccount(accountIndex) {
   try {
-    // Clear cached accounts to force refresh
-    cachedAccounts = [];
-    lastAccountFetch = 0;
+    const storedAccounts = await getStoredAccounts();
     
-    // Get fresh accounts
-    return await fetchGoogleAccounts();
+    if (accountIndex < 0 || accountIndex >= storedAccounts.length) {
+      throw new Error('Invalid account index');
+    }
+    
+    // Remove account from array
+    const updatedAccounts = storedAccounts.filter((_, index) => index !== accountIndex);
+    
+    // Update indices for remaining accounts
+    updatedAccounts.forEach((account, index) => {
+      account.index = index;
+      account.authuser = index;
+    });
+    
+    // Store updated accounts
+    const stored = await storeAccounts(updatedAccounts);
+    if (!stored) {
+      throw new Error('Failed to store updated accounts');
+    }
+    
+    // Update cache
+    cachedAccounts = updatedAccounts;
+    lastAccountFetch = Date.now();
+    
+    // If removed account was default, set first account as default
+    chrome.storage.sync.get(['defaultAccount'], (result) => {
+      if (result.defaultAccount === accountIndex) {
+        if (updatedAccounts.length > 0) {
+          chrome.storage.sync.set({
+            defaultAccount: 0,
+            defaultAuthuser: updatedAccounts[0].authuser
+          });
+        } else {
+          chrome.storage.sync.remove(['defaultAccount', 'defaultAuthuser']);
+        }
+      } else if (result.defaultAccount > accountIndex) {
+        // Adjust default account index if it was after the removed account
+        chrome.storage.sync.set({
+          defaultAccount: result.defaultAccount - 1
+        });
+      }
+    });
+    
+    return { success: true, accounts: updatedAccounts };
   } catch (error) {
-    console.error('Error in refreshAuthToken:', error);
-    throw error; // Re-throw the error instead of returning empty array
+    console.error('Error removing account:', error);
+    return { success: false, error: error.message };
   }
 }
 
 // Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'getAccounts') {
+    console.log('Received getAccounts request');
     getAllGoogleAccounts().then(accounts => {
+      console.log('Sending accounts response:', accounts);
       sendResponse({accounts: accounts});
     }).catch(error => {
-      sendResponse({accounts: []});
+      console.error('Error getting accounts:', error);
+      sendResponse({accounts: [], error: error.message});
     });
     return true; // Will respond asynchronously
   }
   
-  if (request.action === 'refreshAccounts') {
-    refreshAuthToken().then(accounts => {
-      sendResponse({accounts: accounts});
+  if (request.action === 'addAccount') {
+    console.log('Received addAccount request');
+    addGoogleAccount().then(result => {
+      console.log('Add account result:', result);
+      sendResponse(result);
     }).catch(error => {
-      console.error('Error in refreshAccounts:', error);
-      sendResponse({error: error.message});
+      console.error('Error adding account:', error);
+      sendResponse({success: false, error: error.message});
     });
-    return true;
+    return true; // Will respond asynchronously
+  }
+  
+  if (request.action === 'removeAccount') {
+    console.log('Received removeAccount request for index:', request.accountIndex);
+    removeAccount(request.accountIndex).then(result => {
+      console.log('Remove account result:', result);
+      sendResponse(result);
+    }).catch(error => {
+      console.error('Error removing account:', error);
+      sendResponse({success: false, error: error.message});
+    });
+    return true; // Will respond asynchronously
   }
   
   if (request.action === 'getDefaultAccount') {
