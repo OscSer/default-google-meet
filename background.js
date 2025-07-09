@@ -498,7 +498,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         // The authuser should match the index in the new system
         defaultAuthuser = defaultAccountObj.index;
         
-        const needsRedirect = currentAccount === null || currentAccount !== defaultAuthuser;
+        const needsRedirect = (currentAccount === null && defaultAuthuser !== 0) || (currentAccount !== null && currentAccount !== defaultAuthuser);
         
         if (needsRedirect) {
           const redirectUrl = constructMeetURL(request.url, defaultAuthuser);

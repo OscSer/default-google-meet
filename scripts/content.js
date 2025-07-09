@@ -180,13 +180,8 @@ function checkAccountMismatch() {
     }
     
     if (response && response.needsRedirect) {
-      // Show notification before redirect
-      showRedirectNotification(response.currentAccount, response.defaultAccount);
-      
-      // Redirect to the correct account after a short delay
-      setTimeout(() => {
-        window.location.href = response.redirectUrl;
-      }, 1000);
+      // Redirect to the correct account immediately
+      window.location.href = response.redirectUrl;
     }
   });
 }
@@ -196,14 +191,14 @@ function initializeExtension() {
   // Check for account mismatch on page load with delay
   setTimeout(() => {
     checkAccountMismatch();
-  }, 2000);
+  }, 500);
   
   // Also check when URL changes (for SPA navigation)
   let currentUrl = window.location.href;
   const urlObserver = new MutationObserver(() => {
     if (window.location.href !== currentUrl) {
       currentUrl = window.location.href;
-      setTimeout(checkAccountMismatch, 2000); // Delay to ensure page is loaded
+      setTimeout(checkAccountMismatch, 500); // Delay to ensure page is loaded
     }
   });
   
