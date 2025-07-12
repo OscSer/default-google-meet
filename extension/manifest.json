@@ -3,7 +3,7 @@
   "name": "Google Meet Account Selector",
   "version": "1.0",
   "description": "Set a default Google account for Google Meet links to avoid joining calls with the wrong account.",
-  "permissions": ["storage", "cookies"],
+  "permissions": ["storage", "cookies", "tabs"],
   "host_permissions": ["https://*.google.com/*"],
   "background": {
     "service_worker": "background.js"

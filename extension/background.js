@@ -1,5 +1,6 @@
 chrome.runtime.onInstalled.addListener(() => {
   startAccountRefresh();
+  initializeTabTracking();
 });
 
 function startAccountRefresh() {
@@ -288,7 +289,34 @@ async function getAllGoogleAccounts() {
   }
 }
 
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+const redirectedTabs = new Map();
+
+function initializeTabTracking() {
+  chrome.tabs.onRemoved.addListener(tabId => {
+    redirectedTabs.delete(tabId);
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.url && !changeInfo.url.includes('meet.google.com')) {
+      redirectedTabs.delete(tabId);
+    }
+  });
+}
+
+function markTabAsRedirected(tabId) {
+  redirectedTabs.set(tabId, true);
+}
+
+function hasTabBeenRedirected(tabId) {
+  return redirectedTabs.has(tabId);
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'getTabId') {
+    sendResponse({ tabId: sender.tab?.id });
+    return true;
+  }
+
   if (request.action === 'getAccounts') {
     getAllGoogleAccounts()
       .then(accounts => {
@@ -348,6 +376,15 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   if (request.action === 'checkAccountMismatch') {
     const currentAccount = getCurrentAccountFromURL(request.url);
+    const tabId = request.tabId;
+
+    if (hasTabBeenRedirected(tabId)) {
+      sendResponse({
+        needsRedirect: false,
+        reason: 'Tab already redirected once',
+      });
+      return;
+    }
 
     chrome.storage.sync.get(
       ['defaultAccount', 'defaultAuthuser'],
@@ -384,6 +421,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             (currentAccount !== null && currentAccount !== defaultAuthuser);
 
           if (needsRedirect) {
+            markTabAsRedirected(tabId);
             const redirectUrl = constructMeetURL(request.url, defaultAuthuser);
             sendResponse({
               needsRedirect: true,

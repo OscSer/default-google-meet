@@ -120,17 +120,29 @@ function checkAccountSync() {
 
   chrome.runtime.sendMessage(
     {
-      action: 'checkAccountMismatch',
-      url: currentUrl,
+      action: 'getTabId',
     },
-    response => {
-      if (chrome.runtime.lastError) {
+    tabResponse => {
+      if (chrome.runtime.lastError || !tabResponse?.tabId) {
         return;
       }
 
-      if (response && response.needsRedirect) {
-        window.location.href = response.redirectUrl;
-      }
+      chrome.runtime.sendMessage(
+        {
+          action: 'checkAccountMismatch',
+          url: currentUrl,
+          tabId: tabResponse.tabId,
+        },
+        response => {
+          if (chrome.runtime.lastError) {
+            return;
+          }
+
+          if (response && response.needsRedirect) {
+            window.location.href = response.redirectUrl;
+          }
+        }
+      );
     }
   );
 }
@@ -160,7 +172,7 @@ if (document.readyState === 'loading') {
   initialize();
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'getPageInfo') {
     sendResponse({
       url: window.location.href,
