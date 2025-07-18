@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Google Meet Selector",
-  "version": "1.0",
+  "version": "1.1.0",
   "description": "Set a default Google account for Google Meet links to avoid joining calls with the wrong account.",
   "permissions": ["storage", "cookies", "tabs", "alarms"],
   "host_permissions": ["https://*.google.com/*"],
