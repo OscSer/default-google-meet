@@ -353,6 +353,16 @@ const messageHandlers = {
     const result = await handleAccountMismatch(url, tabId);
     sendResponse(result);
   },
+  findAuthuserForEmail: async (request, sender, sendResponse) => {
+    try {
+      const accounts = await getAllGoogleAccounts();
+      const foundAccount = accounts.find(acc => acc.email === request.email);
+      sendResponse({ authuser: foundAccount ? foundAccount.authuser : null });
+    } catch (error) {
+      console.error('Error finding authuser for email:', error);
+      sendResponse({ authuser: null, error: error.message });
+    }
+  },
 };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

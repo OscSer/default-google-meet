@@ -61,71 +61,80 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function setDefaultAccount(index) {
+  async function setDefaultAccount(index) {
     defaultAccountIndex = index;
 
-    document.querySelectorAll('.account-row').forEach((item, i) => {
-      item.classList.toggle('selected', i === index);
-      const indicator = item.querySelector('.status-indicator');
-      indicator.className = `status-indicator ${i === index ? 'default' : ''}`;
-    });
-
-    chrome.runtime.sendMessage({
-      action: 'setDefaultAccount',
-      accountIndex: index,
-    });
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'setDefaultAccount',
+        accountIndex: index,
+      });
+      renderAccounts(); // Re-render to update UI consistently
+    } catch (error) {
+      console.error('Error setting default account:', error);
+      // Optionally, revert UI or show error to user
+    }
   }
 
-  function loadAccounts() {
+  async function loadAccounts() {
     showLoading();
 
-    refreshAccounts().then(() => {
-      setTimeout(() => {
-        if (accounts.length === 0) {
-          showError();
-        } else {
-          renderDefaultAccount();
-        }
-      }, 500);
-    });
+    try {
+      await refreshAccounts();
+      if (accounts.length === 0) {
+        showError();
+      } else {
+        await renderDefaultAccount();
+        showContent();
+      }
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+      showError();
+    }
   }
 
-  function refreshAccounts() {
-    return new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'refreshAccounts' }, response => {
-        if (chrome.runtime.lastError || !response.success) {
-          resolve();
-          return;
-        }
-
-        accounts = response.accounts || [];
-        resolve();
+  async function refreshAccounts() {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'refreshAccounts',
       });
-    });
+      if (response && response.success) {
+        accounts = response.accounts || [];
+      } else {
+        console.error('Failed to refresh accounts:', response?.error);
+        accounts = [];
+      }
+    } catch (error) {
+      console.error('Error sending refreshAccounts message:', error);
+      accounts = [];
+    }
   }
 
-  function renderDefaultAccount() {
+  async function renderDefaultAccount() {
     if (accounts.length === 0) {
       showError();
       return;
     }
 
-    chrome.runtime.sendMessage(
-      { action: 'getDefaultAccount' },
-      defaultResponse => {
-        if (chrome.runtime.lastError) {
+    try {
+      const defaultResponse = await chrome.runtime.sendMessage({
+        action: 'getDefaultAccount',
+      });
+      if (defaultResponse) {
+        defaultAccountIndex = defaultResponse.defaultAccount || 0;
+        if (defaultAccountIndex >= accounts.length) {
           defaultAccountIndex = 0;
-        } else if (defaultResponse) {
-          defaultAccountIndex = defaultResponse.defaultAccount || 0;
-          if (defaultAccountIndex >= accounts.length) {
-            defaultAccountIndex = 0;
-          }
         }
-
-        renderAccounts();
-        showContent();
+      } else {
+        console.error('Failed to get default account.');
+        defaultAccountIndex = 0;
       }
-    );
+    } catch (error) {
+      console.error('Error sending getDefaultAccount message:', error);
+      defaultAccountIndex = 0;
+    }
+
+    renderAccounts();
   }
 
   retryBtn.addEventListener('click', () => {

@@ -1,29 +1,28 @@
-function getCurrentAccount() {
+async function getCurrentAccount() {
   const urlParams = new URLSearchParams(window.location.search);
   const authuser = urlParams.get('authuser');
 
   if (authuser !== null) {
-    return parseInt(authuser);
+    return parseInt(authuser, 10);
   }
 
   const detectedEmail = getCurrentEmail();
 
   if (detectedEmail) {
-    return new Promise(resolve => {
-      chrome.runtime.sendMessage(
-        {
-          action: 'findAuthuserForEmail',
-          email: detectedEmail,
-        },
-        response => {
-          if (response && response.authuser !== null) {
-            resolve(response.authuser);
-          } else {
-            resolve(null);
-          }
-        }
-      );
-    });
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'findAuthuserForEmail',
+        email: detectedEmail,
+      });
+      if (response && response.authuser !== null) {
+        return response.authuser;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Error in findAuthuserForEmail message:', error);
+      return null;
+    }
   }
 
   return null;
@@ -104,64 +103,55 @@ function getCurrentEmail() {
         return filteredEmails[0];
       }
     }
-
+    console.warn('No email detected on the page.');
     return null;
   } catch (error) {
+    console.error('Error in getCurrentEmail:', error);
     return null;
   }
 }
 
-function checkAccountSync() {
+async function checkAccountSync() {
   const currentUrl = window.location.href;
 
   if (!currentUrl.includes('meet.google.com')) {
     return;
   }
 
-  chrome.runtime.sendMessage(
-    {
+  try {
+    const tabResponse = await chrome.runtime.sendMessage({
       action: 'getTabId',
-    },
-    tabResponse => {
-      if (chrome.runtime.lastError || !tabResponse?.tabId) {
-        return;
-      }
+    });
 
-      chrome.runtime.sendMessage(
-        {
-          action: 'checkAccountMismatch',
-          url: currentUrl,
-          tabId: tabResponse.tabId,
-        },
-        response => {
-          if (chrome.runtime.lastError) {
-            return;
-          }
-
-          if (response && response.needsRedirect) {
-            window.location.href = response.redirectUrl;
-          }
-        }
-      );
+    if (!tabResponse?.tabId) {
+      console.warn('Could not get tab ID.');
+      return;
     }
-  );
+
+    const response = await chrome.runtime.sendMessage({
+      action: 'checkAccountMismatch',
+      url: currentUrl,
+      tabId: tabResponse.tabId,
+    });
+
+    if (response && response.needsRedirect) {
+      window.location.href = response.redirectUrl;
+    }
+  } catch (error) {
+    console.error('Error in checkAccountSync:', error);
+  }
 }
 
 function initialize() {
-  setTimeout(checkAccountSync, 200);
+  checkAccountSync(); // Initial check
 
-  let currentUrl = window.location.href;
-  const urlObserver = new MutationObserver(() => {
-    if (window.location.href !== currentUrl) {
-      currentUrl = window.location.href;
-      setTimeout(checkAccountSync, 200);
+  let lastUrl = window.location.href;
+  setInterval(() => {
+    if (window.location.href !== lastUrl) {
+      lastUrl = window.location.href;
+      checkAccountSync();
     }
-  });
-
-  urlObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
+  }, 1000); // Check every second for URL changes
 }
 
 if (document.readyState === 'loading') {
@@ -171,17 +161,28 @@ if (document.readyState === 'loading') {
 }
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request.action === 'getPageInfo') {
-    sendResponse({
-      url: window.location.href,
-      title: document.title,
-      currentAccount: getCurrentAccount(),
-    });
-  }
+  // For async responses, return true to keep the message channel open
+  let responseSent = false;
 
-  if (request.action === 'detectCurrentAccount') {
-    sendResponse({
-      currentAccount: getCurrentAccount(),
-    });
-  }
+  const handleRequest = async () => {
+    if (request.action === 'getPageInfo') {
+      const currentAccount = await getCurrentAccount();
+      sendResponse({
+        url: window.location.href,
+        title: document.title,
+        currentAccount: currentAccount,
+      });
+      responseSent = true;
+    } else if (request.action === 'detectCurrentAccount') {
+      const currentAccount = await getCurrentAccount();
+      sendResponse({
+        currentAccount: currentAccount,
+      });
+      responseSent = true;
+    }
+  };
+
+  handleRequest();
+
+  return responseSent; // Return true if sendResponse will be called asynchronously
 });
