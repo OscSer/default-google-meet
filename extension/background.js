@@ -1,42 +1,55 @@
+// 1. Alarms API for refreshing
 chrome.runtime.onInstalled.addListener(() => {
-  startAccountRefresh();
+  initializeAlarms();
   initializeTabTracking();
 });
 
-function startAccountRefresh() {
-  const REFRESH_INTERVAL = 30 * 60 * 1000;
+function initializeAlarms() {
+  const REFRESH_INTERVAL_MINUTES = 30;
+  chrome.alarms.create('refreshAccounts', {
+    delayInMinutes: 1, // Initial refresh after 1 minute
+    periodInMinutes: REFRESH_INTERVAL_MINUTES,
+  });
+}
 
-  setTimeout(() => {
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'refreshAccounts') {
     refreshAccounts();
-  }, 5000);
+  }
+});
 
-  setInterval(() => {
-    refreshAccounts();
-  }, REFRESH_INTERVAL);
+// 2. Centralized Email Extraction + Improved Error Handling
+function extractEmailsFromText(text) {
+  const emails = new Set();
+  const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+  let match;
+
+  while ((match = emailRegex.exec(text)) !== null) {
+    const email = match[0];
+    if (email && !email.endsWith('google.com')) {
+      emails.add(email);
+    }
+  }
+  return Array.from(emails);
 }
 
 async function getActiveGoogleAccounts() {
   try {
-    const accountChooserAccounts = await getAccountsFromChooser();
-    if (accountChooserAccounts.length > 0) {
-      return accountChooserAccounts;
-    }
-
-    const fallbackAccounts = await getAccountsFallback();
-    if (fallbackAccounts.length > 0) {
-      return fallbackAccounts;
+    const htmlAccounts = await getAccountsFromHTML();
+    if (htmlAccounts.length > 0) {
+      return htmlAccounts;
     }
 
     return await getAccountsFromCookies();
   } catch (error) {
+    console.error('Error getting active Google accounts:', error);
     return [];
   }
 }
 
-async function getAccountsFromChooser() {
+async function getAccountsFromHTML() {
   try {
-    const accountChooserUrl =
-      'https://accounts.google.com/v3/signin/accountchooser?flowName=GlifWebSignIn&flowEntry=AccountChooser';
+    const accountChooserUrl = 'https://accounts.google.com/AccountChooser';
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -65,92 +78,28 @@ async function getAccountsFromChooser() {
       return [];
     }
 
-    const accounts = [];
-    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-    let match;
-    const foundEmails = new Set();
-
-    while ((match = emailRegex.exec(responseText)) !== null) {
-      const email = match[0];
-      if (email && !foundEmails.has(email) && !email.endsWith('google.com')) {
-        foundEmails.add(email);
-      }
-    }
-
-    let authuserIndex = 0;
-    for (const email of foundEmails) {
-      accounts.push({
-        email: email,
-        authuser: authuserIndex++,
-      });
-    }
-
-    const uniqueAccounts = accounts.filter(
-      (account, index, self) =>
-        index === self.findIndex(a => a.email === account.email)
-    );
-
-    uniqueAccounts.sort((a, b) => a.authuser - b.authuser);
-
-    return uniqueAccounts;
+    const emails = extractEmailsFromText(responseText);
+    return emails.map((email, index) => ({
+      email: email,
+      authuser: index,
+    }));
   } catch (error) {
-    return [];
-  }
-}
-
-async function getAccountsFallback() {
-  try {
-    const fallbackUrl = 'https://accounts.google.com/AccountChooser';
-
-    const response = await fetch(fallbackUrl, {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      const responseText = await response.text();
-      if (responseText && responseText.length > 100) {
-        const accounts = [];
-        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-        let match;
-
-        while ((match = emailPattern.exec(responseText)) !== null) {
-          const email = match[0];
-          if (!email.includes('google.com')) {
-            if (!accounts.find(acc => acc.email === email)) {
-              accounts.push({
-                email: email,
-                authuser: accounts.length,
-                source: 'fallback',
-              });
-            }
-          }
-        }
-        if (accounts.length > 0) return accounts;
-      }
-    }
-    return [];
-  } catch (error) {
+    console.error('Error fetching accounts from HTML:', error);
     return [];
   }
 }
 
 async function getAccountsFromCookies() {
   try {
-    const accounts = [];
-    const cookies = await new Promise((resolve, reject) => {
-      chrome.cookies.getAll({ domain: '.google.com' }, cookies => {
-        if (chrome.runtime.lastError)
-          reject(new Error(chrome.runtime.lastError.message));
-        else resolve(cookies || []);
-      });
-    });
+    const cookies = await chrome.cookies.getAll({ domain: '.google.com' });
 
     if (!cookies || cookies.length === 0) return [];
 
     const accountCookies = cookies.filter(c =>
       c.name.includes('ACCOUNT_CHOOSER')
     );
+
+    const allEmails = new Set();
 
     for (const cookie of accountCookies) {
       let cookieValue;
@@ -159,32 +108,43 @@ async function getAccountsFromCookies() {
       } catch (e) {
         cookieValue = cookie.value;
       }
-
-      const emailMatches = cookieValue.match(
-        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-      );
-      if (emailMatches) {
-        emailMatches.forEach(email => {
-          if (!email.includes('google.com')) {
-            if (!accounts.find(acc => acc.email === email)) {
-              accounts.push({
-                email: email,
-                authuser: accounts.length,
-                source: 'cookie',
-              });
-            }
-          }
-        });
-      }
+      const emails = extractEmailsFromText(cookieValue);
+      emails.forEach(email => allEmails.add(email));
     }
 
-    accounts.sort((a, b) => a.authuser - b.authuser);
-    return accounts;
+    return Array.from(allEmails).map((email, index) => ({
+      email: email,
+      authuser: index,
+      source: 'cookie',
+    }));
   } catch (error) {
+    console.error('Error fetching accounts from cookies:', error);
     return [];
   }
 }
 
+// 3. Native promises for chrome.storage
+async function getStoredAccounts() {
+  try {
+    const result = await chrome.storage.sync.get(['accounts']);
+    return result.accounts || [];
+  } catch (error) {
+    console.error('Error getting stored accounts:', error);
+    return [];
+  }
+}
+
+async function storeAccounts(accounts) {
+  try {
+    await chrome.storage.sync.set({ accounts: accounts });
+    return true;
+  } catch (error) {
+    console.error('Error storing accounts:', error);
+    return false;
+  }
+}
+
+// 4. Refactored refreshAccounts
 async function refreshAccounts() {
   try {
     const [storedAccounts, browserAccounts] = await Promise.all([
@@ -193,25 +153,25 @@ async function refreshAccounts() {
     ]);
 
     if (browserAccounts.length === 0) {
-      return;
+      return storedAccounts;
     }
 
+    const storedAccountsMap = new Map(
+      storedAccounts.map(acc => [acc.email, acc])
+    );
     let hasChanges = false;
 
     const newAccounts = browserAccounts.map((browserAccount, index) => {
-      const existingAccount = storedAccounts.find(
-        sa => sa.email === browserAccount.email
-      );
+      const existingAccount = storedAccountsMap.get(browserAccount.email);
       const newAuthUser = index;
 
       if (existingAccount) {
-        if (existingAccount.authuser !== newAuthUser) {
-          existingAccount.authuser = newAuthUser;
+        if (
+          existingAccount.authuser !== newAuthUser ||
+          existingAccount.index !== index
+        ) {
           hasChanges = true;
-        }
-        if (existingAccount.index !== index) {
-          existingAccount.index = index;
-          hasChanges = true;
+          return { ...existingAccount, authuser: newAuthUser, index: index };
         }
         return existingAccount;
       } else {
@@ -239,40 +199,20 @@ async function refreshAccounts() {
 
     return newAccounts;
   } catch (error) {
-    return await getStoredAccounts();
+    console.error('Error refreshing accounts:', error);
+    return getStoredAccounts();
   }
 }
 
-async function getStoredAccounts() {
-  return new Promise(resolve => {
-    chrome.storage.sync.get(['accounts'], result => {
-      const accounts = result.accounts || [];
-      resolve(accounts);
-    });
-  });
-}
-
-async function storeAccounts(accounts) {
-  return new Promise(resolve => {
-    chrome.storage.sync.set({ accounts: accounts }, () => {
-      if (chrome.runtime.lastError) {
-        resolve(false);
-      } else {
-        resolve(true);
-      }
-    });
-  });
-}
-
+// Utility functions
 function getCurrentAccountFromURL(url) {
-  const urlObj = new URL(url);
-  const authuser = urlObj.searchParams.get('authuser');
-
-  if (authuser !== null) {
-    return parseInt(authuser);
+  try {
+    const urlObj = new URL(url);
+    const authuser = urlObj.searchParams.get('authuser');
+    return authuser !== null ? parseInt(authuser, 10) : null;
+  } catch (e) {
+    return null;
   }
-
-  return null;
 }
 
 function constructMeetURL(originalUrl, accountIndex) {
@@ -285,165 +225,141 @@ async function getAllGoogleAccounts() {
   try {
     return await refreshAccounts();
   } catch (error) {
+    console.error('Error getting all Google accounts:', error);
     return [];
   }
 }
 
-const redirectedTabs = new Map();
-
+// 5. Persistent Tab Tracking using chrome.storage.session
 function initializeTabTracking() {
   chrome.tabs.onRemoved.addListener(tabId => {
-    redirectedTabs.delete(tabId);
+    chrome.storage.session.remove(String(tabId));
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.url && !changeInfo.url.includes('meet.google.com')) {
-      redirectedTabs.delete(tabId);
+      chrome.storage.session.remove(String(tabId));
     }
   });
 }
 
-function markTabAsRedirected(tabId) {
-  redirectedTabs.set(tabId, true);
+async function markTabAsRedirected(tabId) {
+  await chrome.storage.session.set({ [String(tabId)]: true });
 }
 
-function hasTabBeenRedirected(tabId) {
-  return redirectedTabs.has(tabId);
+async function hasTabBeenRedirected(tabId) {
+  const result = await chrome.storage.session.get(String(tabId));
+  return result[String(tabId)] === true;
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getTabId') {
+// 6. Refactored onMessage listener and logic extraction
+async function handleAccountMismatch(url, tabId) {
+  const currentAccount = getCurrentAccountFromURL(url);
+
+  if (await hasTabBeenRedirected(tabId)) {
+    return { needsRedirect: false, reason: 'Tab already redirected' };
+  }
+
+  try {
+    const { defaultAccount } = await chrome.storage.sync.get('defaultAccount');
+
+    if (defaultAccount === undefined) {
+      return { needsRedirect: false, reason: 'No default account set' };
+    }
+
+    const storedAccounts = await getAllGoogleAccounts();
+    const defaultAccountObj = storedAccounts.find(
+      acc => acc.index === defaultAccount
+    );
+
+    if (!defaultAccountObj) {
+      return {
+        needsRedirect: false,
+        reason: 'Default account not found in stored accounts',
+      };
+    }
+
+    const defaultAuthuser = defaultAccountObj.index;
+
+    const needsRedirect =
+      (currentAccount === null && defaultAuthuser !== 0) ||
+      (currentAccount !== null && currentAccount !== defaultAuthuser);
+
+    if (needsRedirect) {
+      await markTabAsRedirected(tabId);
+      const redirectUrl = constructMeetURL(url, defaultAuthuser);
+      return {
+        needsRedirect: true,
+        redirectUrl,
+        currentAccount,
+        defaultAccount: defaultAuthuser,
+        reason: 'Account mismatch',
+      };
+    } else {
+      return { needsRedirect: false, reason: 'Account matches' };
+    }
+  } catch (error) {
+    return {
+      needsRedirect: false,
+      reason: 'Error checking account mismatch',
+      error: error.message,
+    };
+  }
+}
+
+const messageHandlers = {
+  getTabId: (request, sender, sendResponse) => {
     sendResponse({ tabId: sender.tab?.id });
-    return true;
-  }
-
-  if (request.action === 'getAccounts') {
-    getAllGoogleAccounts()
-      .then(accounts => {
-        sendResponse({ accounts: accounts });
-      })
-      .catch(error => {
-        sendResponse({ accounts: [], error: error.message });
-      });
-    return true;
-  }
-
-  if (request.action === 'getDefaultAccount') {
-    chrome.storage.sync.get(['defaultAccount'], result => {
-      sendResponse({ defaultAccount: result.defaultAccount || 0 });
-    });
-    return true;
-  }
-
-  if (request.action === 'setDefaultAccount') {
-    getAllGoogleAccounts().then(accounts => {
+  },
+  getAccounts: async (request, sender, sendResponse) => {
+    try {
+      const accounts = await getAllGoogleAccounts();
+      sendResponse({ accounts });
+    } catch (error) {
+      sendResponse({ accounts: [], error: error.message });
+    }
+  },
+  getDefaultAccount: async (request, sender, sendResponse) => {
+    const { defaultAccount } = await chrome.storage.sync.get('defaultAccount');
+    sendResponse({ defaultAccount: defaultAccount || 0 });
+  },
+  setDefaultAccount: async (request, sender, sendResponse) => {
+    try {
+      const accounts = await getAllGoogleAccounts();
       const account = accounts[request.accountIndex];
       if (account) {
-        const defaultAuthuser = account.authuser;
-        chrome.storage.sync.set(
-          {
-            defaultAccount: request.accountIndex,
-            defaultAuthuser: defaultAuthuser,
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              sendResponse({
-                success: false,
-                error: chrome.runtime.lastError.message,
-              });
-            } else {
-              sendResponse({ success: true });
-            }
-          }
-        );
+        await chrome.storage.sync.set({
+          defaultAccount: request.accountIndex,
+          defaultAuthuser: account.authuser,
+        });
+        sendResponse({ success: true });
       } else {
         sendResponse({ success: false, error: 'Account not found' });
       }
-    });
-    return true;
-  }
-
-  if (request.action === 'refreshAccounts') {
-    refreshAccounts()
-      .then(accounts => {
-        sendResponse({ success: true, accounts: accounts });
-      })
-      .catch(error => {
-        sendResponse({ success: false, error: error.message });
-      });
-    return true;
-  }
-
-  if (request.action === 'checkAccountMismatch') {
-    const currentAccount = getCurrentAccountFromURL(request.url);
-    const tabId = request.tabId;
-
-    if (hasTabBeenRedirected(tabId)) {
-      sendResponse({
-        needsRedirect: false,
-        reason: 'Tab already redirected once',
-      });
-      return;
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
     }
+  },
+  refreshAccounts: async (request, sender, sendResponse) => {
+    try {
+      const accounts = await refreshAccounts();
+      sendResponse({ success: true, accounts });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
+    }
+  },
+  checkAccountMismatch: async (request, sender, sendResponse) => {
+    const { url, tabId } = request;
+    const result = await handleAccountMismatch(url, tabId);
+    sendResponse(result);
+  },
+};
 
-    chrome.storage.sync.get(
-      ['defaultAccount', 'defaultAuthuser'],
-      async result => {
-        try {
-          const defaultAccount = result.defaultAccount;
-          let defaultAuthuser = result.defaultAuthuser;
-
-          if (defaultAccount === undefined || defaultAuthuser === undefined) {
-            sendResponse({
-              needsRedirect: false,
-              reason: 'No default account set',
-            });
-            return;
-          }
-
-          const storedAccounts = await getAllGoogleAccounts();
-          const defaultAccountObj = storedAccounts.find(
-            acc => acc.index === defaultAccount
-          );
-
-          if (!defaultAccountObj) {
-            sendResponse({
-              needsRedirect: false,
-              reason: 'Default account not found',
-            });
-            return;
-          }
-
-          defaultAuthuser = defaultAccountObj.index;
-
-          const needsRedirect =
-            (currentAccount === null && defaultAuthuser !== 0) ||
-            (currentAccount !== null && currentAccount !== defaultAuthuser);
-
-          if (needsRedirect) {
-            markTabAsRedirected(tabId);
-            const redirectUrl = constructMeetURL(request.url, defaultAuthuser);
-            sendResponse({
-              needsRedirect: true,
-              redirectUrl: redirectUrl,
-              currentAccount: currentAccount,
-              defaultAccount: defaultAuthuser,
-              reason: 'Account mismatch',
-            });
-          } else {
-            sendResponse({ needsRedirect: false, reason: 'Account matches' });
-          }
-        } catch (error) {
-          sendResponse({
-            needsRedirect: false,
-            reason: 'Error occurred',
-            error: error.message,
-          });
-        }
-      }
-    );
-    return true;
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  const handler = messageHandlers[request.action];
+  if (handler) {
+    handler(request, sender, sendResponse);
+    return true; // Indicates that the response is sent asynchronously
   }
-
-  return true;
+  return false;
 });
