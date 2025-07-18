@@ -148,15 +148,13 @@ function checkAccountSync() {
 }
 
 function initialize() {
-  setTimeout(() => {
-    checkAccountSync();
-  }, 500);
+  setTimeout(checkAccountSync, 200);
 
   let currentUrl = window.location.href;
   const urlObserver = new MutationObserver(() => {
     if (window.location.href !== currentUrl) {
       currentUrl = window.location.href;
-      setTimeout(checkAccountSync, 500);
+      setTimeout(checkAccountSync, 200);
     }
   });
 

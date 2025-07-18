@@ -17,11 +17,6 @@ yarn-error.log*
 coverage/
 .eslintcache
 
-# Testing - Playwright
-test-results/
-playwright-report/
-.cache/playwright/
-
 # IDE/Editor
 .vscode/
 
@@ -34,3 +29,4 @@ playwright-report/
 
 # Copilot
 .github/copilot-instructions.md
+/plan

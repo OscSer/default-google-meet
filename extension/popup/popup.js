@@ -132,18 +132,5 @@ document.addEventListener('DOMContentLoaded', function () {
     loadAccounts();
   });
 
-  const startMeetBtn = document.getElementById('start-meet-btn');
-  if (startMeetBtn) {
-    startMeetBtn.addEventListener('click', () => {
-      if (accounts.length > 0) {
-        const authUserIndex = defaultAccountIndex;
-        const meetUrl = `https://meet.google.com/new?authuser=${authUserIndex}`;
-        chrome.tabs.create({ url: meetUrl });
-      } else {
-        alert('No accounts available to start Meet.');
-      }
-    });
-  }
-
   loadAccounts();
 });
