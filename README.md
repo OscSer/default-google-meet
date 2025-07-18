@@ -1,4 +1,4 @@
-# Google Meet Account Selector
+# Google Meet Selector
 
 ## Overview
 

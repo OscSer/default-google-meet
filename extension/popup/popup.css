@@ -32,13 +32,6 @@ h1 {
   font-weight: 400;
 }
 
-h3 {
-  margin: 16px 0 8px 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
 .loading {
   text-align: center;
   padding: 40px 0;
@@ -65,45 +58,6 @@ h3 {
 
 .hidden {
   display: none;
-}
-
-.current-account {
-  margin-bottom: 24px;
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.account-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.account-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #e0e0e0;
-  background-size: cover;
-  background-position: center;
-  flex-shrink: 0;
-}
-
-.account-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.account-name {
-  font-weight: 500;
-  color: #333;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .account-email {
@@ -147,11 +101,6 @@ h3 {
   color: #1976d2;
 }
 
-.add-account-section {
-  text-align: center;
-  margin-top: 16px;
-}
-
 .error {
   text-align: center;
   padding: 40px 20px;
@@ -173,10 +122,6 @@ h3 {
 
 .status-indicator.default {
   background: #4caf50;
-}
-
-.status-indicator.current {
-  background: #ff9800;
 }
 
 .retry-btn {
