@@ -144,7 +144,93 @@ async function storeAccounts(accounts) {
   }
 }
 
-// 4. Refactored refreshAccounts
+// Migration function: Convert defaultAccount (index) to defaultEmail
+async function migrateDefaultAccountToEmail() {
+  try {
+    const storage = await chrome.storage.sync.get([
+      'defaultAccount',
+      'defaultEmail',
+    ]);
+
+    // If already migrated, skip
+    if (storage.defaultEmail) {
+      return storage.defaultEmail;
+    }
+
+    // If no defaultAccount set, return null
+    if (storage.defaultAccount === undefined) {
+      return null;
+    }
+
+    // Get current accounts to find email by index
+    const accounts = await getStoredAccounts();
+    const account = accounts[storage.defaultAccount];
+
+    if (account && account.email) {
+      // Migrate to email-based system
+      await chrome.storage.sync.set({
+        defaultEmail: account.email,
+        // Keep old value for fallback during transition
+        defaultAccount_legacy: storage.defaultAccount,
+      });
+      console.log(
+        'Migrated default account from index to email:',
+        account.email
+      );
+      return account.email;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error migrating default account:', error);
+    return null;
+  }
+}
+
+// Get default account email with migration
+async function getDefaultAccountEmail() {
+  try {
+    const storage = await chrome.storage.sync.get([
+      'defaultEmail',
+      'defaultAccount',
+    ]);
+
+    // Try new email-based system first
+    if (storage.defaultEmail) {
+      return storage.defaultEmail;
+    }
+
+    // Fallback to migration if needed
+    return await migrateDefaultAccountToEmail();
+  } catch (error) {
+    console.error('Error getting default account email:', error);
+    return null;
+  }
+}
+
+// Validate account data integrity
+function validateAccount(account) {
+  if (!account || typeof account !== 'object') {
+    return false;
+  }
+
+  if (!account.email || typeof account.email !== 'string') {
+    return false;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(account.email)) {
+    return false;
+  }
+
+  if (account.authuser !== undefined && typeof account.authuser !== 'number') {
+    return false;
+  }
+
+  return true;
+}
+
+// Enhanced account refresh with validation
 async function refreshAccounts() {
   try {
     const [storedAccounts, browserAccounts] = await Promise.all([
@@ -153,7 +239,7 @@ async function refreshAccounts() {
     ]);
 
     if (browserAccounts.length === 0) {
-      return storedAccounts;
+      return storedAccounts.filter(validateAccount);
     }
 
     const storedAccountsMap = new Map(
@@ -161,33 +247,35 @@ async function refreshAccounts() {
     );
     let hasChanges = false;
 
-    const newAccounts = browserAccounts.map((browserAccount, index) => {
-      const existingAccount = storedAccountsMap.get(browserAccount.email);
-      const newAuthUser = index;
+    const newAccounts = browserAccounts
+      .filter(validateAccount)
+      .map((browserAccount, index) => {
+        const existingAccount = storedAccountsMap.get(browserAccount.email);
+        const newAuthUser = index;
 
-      if (existingAccount) {
-        if (
-          existingAccount.authuser !== newAuthUser ||
-          existingAccount.index !== index
-        ) {
+        if (existingAccount) {
+          if (
+            existingAccount.authuser !== newAuthUser ||
+            existingAccount.index !== index
+          ) {
+            hasChanges = true;
+            return { ...existingAccount, authuser: newAuthUser, index: index };
+          }
+          return existingAccount;
+        } else {
           hasChanges = true;
-          return { ...existingAccount, authuser: newAuthUser, index: index };
+          return {
+            email: browserAccount.email,
+            name: browserAccount.email.split('@')[0],
+            profilePicture: browserAccount.avatar || null,
+            id: browserAccount.id || null,
+            index: index,
+            authuser: newAuthUser,
+            addedAt: Date.now(),
+            verified: true,
+          };
         }
-        return existingAccount;
-      } else {
-        hasChanges = true;
-        return {
-          email: browserAccount.email,
-          name: browserAccount.email.split('@')[0],
-          profilePicture: browserAccount.avatar || null,
-          id: browserAccount.id || null,
-          index: index,
-          authuser: newAuthUser,
-          addedAt: Date.now(),
-          verified: true,
-        };
-      }
-    });
+      });
 
     if (newAccounts.length !== storedAccounts.length) {
       hasChanges = true;
@@ -200,7 +288,7 @@ async function refreshAccounts() {
     return newAccounts;
   } catch (error) {
     console.error('Error refreshing accounts:', error);
-    return getStoredAccounts();
+    return getStoredAccounts().filter(validateAccount);
   }
 }
 
@@ -261,49 +349,74 @@ async function handleAccountMismatch(url, tabId) {
   }
 
   try {
-    const { defaultAccount } = await chrome.storage.sync.get('defaultAccount');
+    const defaultEmail = await getDefaultAccountEmail();
 
-    if (defaultAccount === undefined) {
+    if (!defaultEmail) {
       return { needsRedirect: false, reason: 'No default account set' };
     }
 
     const storedAccounts = await getAllGoogleAccounts();
     const defaultAccountObj = storedAccounts.find(
-      acc => acc.index === defaultAccount
+      acc => acc.email === defaultEmail
     );
 
     if (!defaultAccountObj) {
+      // Fallback: try to find by legacy index if migration failed
+      const legacyStorage = await chrome.storage.sync.get(
+        'defaultAccount_legacy'
+      );
+      if (legacyStorage.defaultAccount_legacy !== undefined) {
+        const fallbackAccount =
+          storedAccounts[legacyStorage.defaultAccount_legacy];
+        if (fallbackAccount) {
+          console.warn('Using legacy fallback for default account');
+          return await handleAccountMismatchWithAccount(
+            url,
+            tabId,
+            fallbackAccount
+          );
+        }
+      }
       return {
         needsRedirect: false,
         reason: 'Default account not found in stored accounts',
       };
     }
 
-    const defaultAuthuser = defaultAccountObj.index;
-
-    const needsRedirect =
-      (currentAccount === null && defaultAuthuser !== 0) ||
-      (currentAccount !== null && currentAccount !== defaultAuthuser);
-
-    if (needsRedirect) {
-      await markTabAsRedirected(tabId);
-      const redirectUrl = constructMeetURL(url, defaultAuthuser);
-      return {
-        needsRedirect: true,
-        redirectUrl,
-        currentAccount,
-        defaultAccount: defaultAuthuser,
-        reason: 'Account mismatch',
-      };
-    } else {
-      return { needsRedirect: false, reason: 'Account matches' };
-    }
+    return await handleAccountMismatchWithAccount(
+      url,
+      tabId,
+      defaultAccountObj
+    );
   } catch (error) {
     return {
       needsRedirect: false,
       reason: 'Error checking account mismatch',
       error: error.message,
     };
+  }
+}
+
+async function handleAccountMismatchWithAccount(url, tabId, accountObj) {
+  const currentAccount = getCurrentAccountFromURL(url);
+  const defaultAuthuser = accountObj.authuser;
+
+  const needsRedirect =
+    (currentAccount === null && defaultAuthuser !== 0) ||
+    (currentAccount !== null && currentAccount !== defaultAuthuser);
+
+  if (needsRedirect) {
+    await markTabAsRedirected(tabId);
+    const redirectUrl = constructMeetURL(url, defaultAuthuser);
+    return {
+      needsRedirect: true,
+      redirectUrl,
+      currentAccount,
+      defaultAccount: defaultAuthuser,
+      reason: 'Account mismatch',
+    };
+  } else {
+    return { needsRedirect: false, reason: 'Account matches' };
   }
 }
 
@@ -320,21 +433,40 @@ const messageHandlers = {
     }
   },
   getDefaultAccount: async (request, sender, sendResponse) => {
-    const { defaultAccount } = await chrome.storage.sync.get('defaultAccount');
-    sendResponse({ defaultAccount: defaultAccount || 0 });
+    try {
+      const defaultEmail = await getDefaultAccountEmail();
+      if (defaultEmail) {
+        const accounts = await getAllGoogleAccounts();
+        const accountIndex = accounts.findIndex(
+          acc => acc.email === defaultEmail
+        );
+        sendResponse({ defaultAccount: accountIndex >= 0 ? accountIndex : 0 });
+      } else {
+        sendResponse({ defaultAccount: 0 });
+      }
+    } catch (error) {
+      console.error('Error getting default account:', error);
+      sendResponse({ defaultAccount: 0, error: error.message });
+    }
   },
   setDefaultAccount: async (request, sender, sendResponse) => {
     try {
       const accounts = await getAllGoogleAccounts();
       const account = accounts[request.accountIndex];
-      if (account) {
+
+      if (!account || !validateAccount(account)) {
+        sendResponse({ success: false, error: 'Invalid account data' });
+        return;
+      }
+
+      if (account.email) {
+        // Only save the email, not authuser (which can change with account reordering)
         await chrome.storage.sync.set({
-          defaultAccount: request.accountIndex,
-          defaultAuthuser: account.authuser,
+          defaultEmail: account.email,
         });
         sendResponse({ success: true });
       } else {
-        sendResponse({ success: false, error: 'Account not found' });
+        sendResponse({ success: false, error: 'Account email not found' });
       }
     } catch (error) {
       sendResponse({ success: false, error: error.message });
@@ -357,7 +489,11 @@ const messageHandlers = {
     try {
       const accounts = await getAllGoogleAccounts();
       const foundAccount = accounts.find(acc => acc.email === request.email);
-      sendResponse({ authuser: foundAccount ? foundAccount.authuser : null });
+      if (foundAccount) {
+        sendResponse({ authuser: foundAccount.authuser });
+      } else {
+        sendResponse({ authuser: null, error: 'Account not found' });
+      }
     } catch (error) {
       console.error('Error finding authuser for email:', error);
       sendResponse({ authuser: null, error: error.message });

@@ -4,10 +4,8 @@
   "description": "Chrome extension that helps users avoid joining Google Meet calls with the wrong account",
   "scripts": {
     "build": "node scripts/build-script.js",
-    "format": "prettier --write .",
+    "format:write": "prettier --write .",
     "format:check": "prettier --check .",
-    "format:watch": "prettier --write . --watch",
-    "lint": "prettier --check .",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const retryBtn = document.getElementById('retry-btn');
 
   let accounts = [];
-  let defaultAccountIndex = 0;
+  let defaultAccountEmail = null;
 
   function showContent() {
     contentDiv.classList.remove('hidden');
@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const item = document.createElement('div');
     item.className = `account-row ${isDefault ? 'selected' : ''}`;
     item.dataset.index = index;
+    item.dataset.email = account.email;
 
     const email = document.createElement('div');
     email.className = 'account-email';
@@ -52,23 +53,22 @@ document.addEventListener('DOMContentLoaded', function () {
     accountsContainer.innerHTML = '';
 
     accounts.forEach((account, index) => {
-      const item = createAccountElement(
-        account,
-        index,
-        index === defaultAccountIndex
-      );
+      const isDefault = account.email === defaultAccountEmail;
+      const item = createAccountElement(account, index, isDefault);
       accountsContainer.appendChild(item);
     });
   }
 
   async function setDefaultAccount(index) {
-    defaultAccountIndex = index;
-
     try {
       await chrome.runtime.sendMessage({
         action: 'setDefaultAccount',
         accountIndex: index,
       });
+      // Update local state after successful save
+      if (accounts[index]) {
+        defaultAccountEmail = accounts[index].email;
+      }
       renderAccounts(); // Re-render to update UI consistently
     } catch (error) {
       console.error('Error setting default account:', error);
@@ -121,17 +121,19 @@ document.addEventListener('DOMContentLoaded', function () {
         action: 'getDefaultAccount',
       });
       if (defaultResponse) {
-        defaultAccountIndex = defaultResponse.defaultAccount || 0;
-        if (defaultAccountIndex >= accounts.length) {
-          defaultAccountIndex = 0;
+        const defaultIndex = defaultResponse.defaultAccount || 0;
+        if (defaultIndex >= 0 && defaultIndex < accounts.length) {
+          defaultAccountEmail = accounts[defaultIndex].email;
+        } else {
+          defaultAccountEmail = accounts[0].email;
         }
       } else {
         console.error('Failed to get default account.');
-        defaultAccountIndex = 0;
+        defaultAccountEmail = accounts[0].email;
       }
     } catch (error) {
       console.error('Error sending getDefaultAccount message:', error);
-      defaultAccountIndex = 0;
+      defaultAccountEmail = accounts[0].email;
     }
 
     renderAccounts();
