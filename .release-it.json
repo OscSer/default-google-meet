@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/release-it@19/schema/release-it.json",
+  "git": {
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "push": true,
+    "commit": true,
+    "tag": true,
+    "requireCleanWorkingDir": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "Release ${version}",
+    "releaseNotes": "git log --pretty=format:'* %s (%h)' ${latestTag}...HEAD",
+    "assets": ["build/*.zip"]
+  },
+  "npm": {
+    "publish": false
+  },
+  "hooks": {
+    "before:init": ["npm run format:check"],
+    "after:bump": ["npm run build"],
+    "after:release": [
+      "echo 'To publish to Chrome Web Store, run manually:'",
+      "echo 'npx chrome-webstore-upload upload --source build/ --extension-id YOUR_EXTENSION_ID --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET --refresh-token YOUR_REFRESH_TOKEN'"
+    ]
+  }
+}
