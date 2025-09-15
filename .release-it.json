@@ -11,7 +11,7 @@
   "github": {
     "release": true,
     "releaseName": "Release ${version}",
-    "releaseNotes": "git log --pretty=format:'* %s (%h)' ${latestTag}...HEAD",
+    "releaseNotes": "git log --pretty=format:'* %s (%h)' $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)...HEAD",
     "assets": ["build/*.zip"]
   },
   "npm": {
