@@ -1,6 +1,6 @@
 {
   "name": "default-google-meet",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Chrome extension that helps users avoid joining Google Meet calls with the wrong account",
   "scripts": {
     "prepare": "husky",
