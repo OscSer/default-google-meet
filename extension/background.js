@@ -1,13 +1,18 @@
 // 1. Alarms API for refreshing
+importScripts('scripts/utils.js');
+
+const REFRESH_INTERVAL_MINUTES = 30;
+const FETCH_TIMEOUT_MS = 10000;
+const INITIAL_REFRESH_DELAY_MIN = 1;
+
 chrome.runtime.onInstalled.addListener(() => {
   initializeAlarms();
   initializeTabTracking();
 });
 
 function initializeAlarms() {
-  const REFRESH_INTERVAL_MINUTES = 30;
   chrome.alarms.create('refreshAccounts', {
-    delayInMinutes: 1, // Initial refresh after 1 minute
+    delayInMinutes: INITIAL_REFRESH_DELAY_MIN, // Initial refresh after 1 minute
     periodInMinutes: REFRESH_INTERVAL_MINUTES,
   });
 }
@@ -20,17 +25,8 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
 // 2. Centralized Email Extraction + Improved Error Handling
 function extractEmailsFromText(text) {
-  const emails = new Set();
-  const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-  let match;
-
-  while ((match = emailRegex.exec(text)) !== null) {
-    const email = match[0];
-    if (email && !email.endsWith('google.com')) {
-      emails.add(email);
-    }
-  }
-  return Array.from(emails);
+  const emails = extractEmails(text);
+  return emails.filter(email => !email.endsWith('google.com'));
 }
 
 async function getActiveGoogleAccounts() {
@@ -52,7 +48,7 @@ async function getAccountsFromHTML() {
     const accountChooserUrl = 'https://accounts.google.com/AccountChooser';
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     const response = await fetch(accountChooserUrl, {
       method: 'GET',
@@ -61,8 +57,6 @@ async function getAccountsFromHTML() {
       headers: {
         Accept:
           'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       },
     });
 

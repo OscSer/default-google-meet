@@ -84,10 +84,8 @@ function getCurrentEmail() {
       }
     }
 
-    const pageText = document.documentElement.outerHTML;
-    const emailMatches = pageText.match(
-      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-    );
+    const pageText = document.body.textContent;
+    const emailMatches = extractEmails(pageText);
 
     if (emailMatches && emailMatches.length > 0) {
       const filteredEmails = emailMatches.filter(
@@ -145,13 +143,31 @@ async function checkAccountSync() {
 function initialize() {
   checkAccountSync(); // Initial check
 
-  let lastUrl = window.location.href;
-  setInterval(() => {
-    if (window.location.href !== lastUrl) {
-      lastUrl = window.location.href;
+  const titleElement = document.querySelector('title');
+  if (titleElement) {
+    const observer = new MutationObserver(() => {
       checkAccountSync();
-    }
-  }, 1000); // Check every second for URL changes
+    });
+    observer.observe(titleElement, { childList: true });
+  }
+
+  window.addEventListener('popstate', checkAccountSync);
+
+  const originalPushState = history.pushState;
+  history.pushState = function (state, title, url) {
+    const result = originalPushState.apply(this, arguments);
+    checkAccountSync();
+    return result;
+  };
+
+  const originalReplaceState = history.replaceState;
+  history.replaceState = function (state, title, url) {
+    const result = originalReplaceState.apply(this, arguments);
+    checkAccountSync();
+    return result;
+  };
+
+  setInterval(checkAccountSync, 5000); // Fallback every 5 seconds
 }
 
 if (document.readyState === 'loading') {

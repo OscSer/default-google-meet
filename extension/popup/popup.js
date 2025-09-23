@@ -50,7 +50,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderAccounts() {
-    accountsContainer.innerHTML = '';
+    while (accountsContainer.firstChild) {
+      accountsContainer.removeChild(accountsContainer.firstChild);
+    }
 
     accounts.forEach((account, index) => {
       const isDefault = account.email === defaultAccountEmail;
