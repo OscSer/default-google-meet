@@ -17,12 +17,12 @@ function extractEmailsFromText(text) {
   return emails.filter(email => !email.endsWith('google.com'));
 }
 
-function getAuthuserFromURL(url) {
+function getAuthUserFromURL(url) {
   try {
     const urlObj = new URL(url);
     const authuser = urlObj.searchParams.get('authuser');
     return authuser !== null ? parseInt(authuser, 10) : null;
-  } catch (e) {
+  } catch (error) {
     return null;
   }
 }

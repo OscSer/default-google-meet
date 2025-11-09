@@ -26,7 +26,7 @@ body {
   color: var(--gm-gray-700);
 }
 
-.container {
+.popup-container {
   padding: 10px 20px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
@@ -63,7 +63,7 @@ h1 {
   font-weight: 400;
 }
 
-#loading {
+#loading-spinner {
   text-align: center;
   animation: fadeIn 0.3s ease-out;
 }
@@ -165,21 +165,21 @@ h1 {
   pointer-events: none;
 }
 
-.error {
+.error-state {
   text-align: center;
   padding: 50px 20px;
   color: #e53e3e;
   animation: fadeIn 0.3s ease-out;
 }
 
-.error p {
+.error-state p {
   margin-bottom: 20px;
   font-size: 14px;
   line-height: 1.6;
   color: #4a5568;
 }
 
-.retry-btn {
+.refresh-button {
   background: var(--gm-blue);
   color: var(--gm-white);
   border: none;
@@ -191,7 +191,7 @@ h1 {
   font-size: 13px;
 }
 
-.retry-btn:hover {
+.refresh-button:hover {
   background: #1a73e8;
 }
 
@@ -240,14 +240,14 @@ h1 {
   font-weight: 500;
 }
 
-.subtle-links #review-link,
-.subtle-links #coffee-link {
+.subtle-links #store-review-link,
+.subtle-links #support-link {
   color: inherit;
   text-decoration-color: rgba(102, 126, 234, 0.3);
 }
 
-.subtle-links #review-link:hover,
-.subtle-links #coffee-link:hover {
+.subtle-links #store-review-link:hover,
+.subtle-links #support-link:hover {
   color: var(--gm-blue) !important;
 }
 

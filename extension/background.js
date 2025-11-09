@@ -82,8 +82,8 @@ async function getAccountsFromCookies() {
 
     if (!cookies || cookies.length === 0) return [];
 
-    const accountCookies = cookies.filter(c =>
-      c.name.includes('ACCOUNT_CHOOSER')
+    const accountCookies = cookies.filter(cookie =>
+      cookie.name.includes('ACCOUNT_CHOOSER')
     );
 
     const allEmails = new Set();
@@ -92,7 +92,7 @@ async function getAccountsFromCookies() {
       let cookieValue;
       try {
         cookieValue = decodeURIComponent(cookie.value);
-      } catch (e) {
+      } catch (error) {
         cookieValue = cookie.value;
       }
       const emails = extractEmailsFromText(cookieValue);
@@ -224,7 +224,7 @@ async function refreshAccounts() {
     }
 
     const storedAccountsMap = new Map(
-      storedAccounts.map(acc => [acc.email, acc])
+      storedAccounts.map(account => [account.email, account])
     );
     let hasChanges = false;
 
@@ -303,7 +303,7 @@ async function hasTabBeenRedirected(tabId) {
 }
 
 async function handleAccountMismatch(url, tabId) {
-  const currentAccount = getAuthuserFromURL(url);
+  const currentAccount = getAuthUserFromURL(url);
 
   if (await hasTabBeenRedirected(tabId)) {
     return { needsRedirect: false, reason: 'Tab already redirected' };
@@ -318,7 +318,7 @@ async function handleAccountMismatch(url, tabId) {
 
     const storedAccounts = await getAllGoogleAccounts();
     const defaultAccountObj = storedAccounts.find(
-      acc => acc.email === defaultEmail
+      account => account.email === defaultEmail
     );
 
     if (!defaultAccountObj) {
@@ -358,7 +358,7 @@ async function handleAccountMismatch(url, tabId) {
 }
 
 async function handleAccountMismatchWithAccount(url, tabId, accountObj) {
-  const currentAccount = getAuthuserFromURL(url);
+  const currentAccount = getAuthUserFromURL(url);
   const defaultAuthuser = accountObj.authuser;
 
   const needsRedirect =
@@ -390,7 +390,7 @@ const messageHandlers = {
       if (defaultEmail) {
         const accounts = await getAllGoogleAccounts();
         const accountIndex = accounts.findIndex(
-          acc => acc.email === defaultEmail
+          account => account.email === defaultEmail
         );
         sendResponse({ defaultAccount: accountIndex >= 0 ? accountIndex : 0 });
       } else {
@@ -439,7 +439,9 @@ const messageHandlers = {
   findAuthuserForEmail: async (request, sender, sendResponse) => {
     try {
       const accounts = await getAllGoogleAccounts();
-      const foundAccount = accounts.find(acc => acc.email === request.email);
+      const foundAccount = accounts.find(
+        account => account.email === request.email
+      );
       if (foundAccount) {
         sendResponse({ authuser: foundAccount.authuser });
       } else {

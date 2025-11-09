@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const contentDiv = document.getElementById('content');
-  const errorDiv = document.getElementById('error');
-  const loadingDiv = document.getElementById('loading');
+  const contentDiv = document.getElementById('main-content');
+  const errorDiv = document.getElementById('error-message');
+  const loadingDiv = document.getElementById('loading-spinner');
   const accountsContainer = document.getElementById('accounts-container');
-  const retryBtn = document.getElementById('retry-btn');
+  const retryBtn = document.getElementById('refresh-button');
 
   const REVIEW_URL =
     'https://chromewebstore.google.com/detail/google-meet-selector/kgejkghcnljcmpfnncbggbpioinaekfo/reviews';
@@ -158,8 +158,8 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function setupExternalLinks() {
-    const reviewLink = document.getElementById('review-link');
-    const coffeeLink = document.getElementById('coffee-link');
+    const reviewLink = document.getElementById('store-review-link');
+    const coffeeLink = document.getElementById('support-link');
 
     const open = async url => {
       try {
