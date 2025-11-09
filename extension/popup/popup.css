@@ -63,7 +63,7 @@ h1 {
   font-weight: 400;
 }
 
-.loading {
+#loading {
   text-align: center;
   animation: fadeIn 0.3s ease-out;
 }
