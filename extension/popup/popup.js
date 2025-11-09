@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let accounts = [];
   let defaultAccountEmail = null;
+  let selectingIndex = null; // Track in-progress selection
 
   function showContent() {
     contentDiv.classList.remove('hidden');
@@ -32,7 +33,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function createAccountElement(account, index, isDefault) {
     const item = document.createElement('div');
-    item.className = `account-row ${isDefault ? 'selected' : ''}`;
+    const classes = ['account-row'];
+    if (isDefault) classes.push('selected');
+    if (index === selectingIndex) classes.push('loading');
+    item.className = classes.join(' ');
     item.dataset.index = index;
     item.dataset.email = account.email;
 
@@ -41,12 +45,16 @@ document.addEventListener('DOMContentLoaded', function () {
     email.textContent = account.email;
 
     const indicator = document.createElement('div');
-    indicator.className = `status-indicator ${isDefault ? 'default' : ''}`;
+    const isLoading = index === selectingIndex;
+    indicator.className = `status-indicator ${isLoading ? 'loading' : isDefault ? 'default' : ''}`;
 
     item.appendChild(email);
     item.appendChild(indicator);
 
     item.addEventListener('click', () => {
+      if (selectingIndex !== null) return;
+      selectingIndex = index;
+      renderAccounts();
       setDefaultAccount(index);
     });
 
@@ -71,14 +79,14 @@ document.addEventListener('DOMContentLoaded', function () {
         action: 'setDefaultAccount',
         accountIndex: index,
       });
-      // Update local state after successful save
       if (accounts[index]) {
         defaultAccountEmail = accounts[index].email;
       }
-      renderAccounts(); // Re-render to update UI consistently
     } catch (error) {
       console.error('Error setting default account:', error);
-      // Optionally, revert UI or show error to user
+    } finally {
+      selectingIndex = null; // Clear loading state
+      renderAccounts(); // Re-render UI
     }
   }
 
