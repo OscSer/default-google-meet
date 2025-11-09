@@ -272,9 +272,6 @@ async function refreshAccounts() {
 }
 
 // Utility functions
-function getCurrentAccountFromURL(url) {
-  return getAuthuserFromURL(url);
-}
 
 function constructMeetURL(originalUrl, accountIndex) {
   const url = new URL(originalUrl);
@@ -315,7 +312,7 @@ async function hasTabBeenRedirected(tabId) {
 
 // 6. Refactored onMessage listener and logic extraction
 async function handleAccountMismatch(url, tabId) {
-  const currentAccount = getCurrentAccountFromURL(url);
+  const currentAccount = getAuthuserFromURL(url);
 
   if (await hasTabBeenRedirected(tabId)) {
     return { needsRedirect: false, reason: 'Tab already redirected' };
@@ -371,7 +368,7 @@ async function handleAccountMismatch(url, tabId) {
 }
 
 async function handleAccountMismatchWithAccount(url, tabId, accountObj) {
-  const currentAccount = getCurrentAccountFromURL(url);
+  const currentAccount = getAuthuserFromURL(url);
   const defaultAuthuser = accountObj.authuser;
 
   const needsRedirect =

@@ -1,96 +1,3 @@
-async function getCurrentAccount() {
-  const authuser = getAuthuserFromURL(window.location.href);
-
-  if (authuser !== null) {
-    return authuser;
-  }
-
-  const detectedEmail = getCurrentEmail();
-
-  if (detectedEmail) {
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'findAuthuserForEmail',
-        email: detectedEmail,
-      });
-      if (response && response.authuser !== null) {
-        return response.authuser;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error('Error in findAuthuserForEmail message:', error);
-      return null;
-    }
-  }
-
-  return null;
-}
-
-function getCurrentEmail() {
-  try {
-    const userSelectors = [
-      '[data-email]',
-      '[aria-label*="@"]',
-      '[data-identifier]',
-      '.gb_A[aria-label*="@"]',
-      '.gb_A[title*="@"]',
-      '.gb_A .gb_Tb',
-      '.gb_A .gb_Vb',
-      '[role="button"][aria-label*="@"]',
-      '[data-ved] [aria-label*="@"]',
-    ];
-
-    for (const selector of userSelectors) {
-      const elements = document.querySelectorAll(selector);
-      for (const element of elements) {
-        const dataEmail =
-          element.getAttribute('data-email') ||
-          element.getAttribute('data-identifier');
-        if (dataEmail && dataEmail.includes('@')) {
-          return dataEmail;
-        }
-
-        const ariaLabel = element.getAttribute('aria-label');
-        if (ariaLabel) {
-          const email = findFirstEmailInText(ariaLabel);
-          if (email) {
-            return email;
-          }
-        }
-
-        const title = element.getAttribute('title');
-        if (title) {
-          const email = findFirstEmailInText(title);
-          if (email) {
-            return email;
-          }
-        }
-
-        const textContent = element.textContent;
-        if (textContent) {
-          const email = findFirstEmailInText(textContent);
-          if (email) {
-            return email;
-          }
-        }
-      }
-    }
-
-    const pageText = document.body.textContent;
-    const email = findFirstValidEmail(pageText);
-
-    if (email) {
-      return email;
-    }
-    console.warn('No email detected on the page.');
-    return null;
-  } catch (error) {
-    console.error('Error in getCurrentEmail:', error);
-    return null;
-  }
-}
-
 async function checkAccountSync() {
   const currentUrl = window.location.href;
 
@@ -125,6 +32,7 @@ async function checkAccountSync() {
 function initialize() {
   checkAccountSync();
 
+  // Observe URL changes without injecting extra unused detection logic
   let checkTimeout;
   const debouncedCheck = () => {
     clearTimeout(checkTimeout);
