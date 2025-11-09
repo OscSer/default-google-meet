@@ -1,9 +1,8 @@
 async function getCurrentAccount() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const authuser = urlParams.get('authuser');
+  const authuser = getAuthuserFromURL(window.location.href);
 
   if (authuser !== null) {
-    return parseInt(authuser, 10);
+    return authuser;
   }
 
   const detectedEmail = getCurrentEmail();
@@ -54,52 +53,35 @@ function getCurrentEmail() {
 
         const ariaLabel = element.getAttribute('aria-label');
         if (ariaLabel) {
-          const emailMatch = ariaLabel.match(
-            /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
-          );
-          if (emailMatch) {
-            return emailMatch[0];
+          const email = findFirstEmailInText(ariaLabel);
+          if (email) {
+            return email;
           }
         }
 
         const title = element.getAttribute('title');
         if (title) {
-          const emailMatch = title.match(
-            /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
-          );
-          if (emailMatch) {
-            return emailMatch[0];
+          const email = findFirstEmailInText(title);
+          if (email) {
+            return email;
           }
         }
 
         const textContent = element.textContent;
         if (textContent) {
-          const emailMatch = textContent.match(
-            /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
-          );
-          if (emailMatch) {
-            return emailMatch[0];
+          const email = findFirstEmailInText(textContent);
+          if (email) {
+            return email;
           }
         }
       }
     }
 
     const pageText = document.body.textContent;
-    const emailMatches = extractEmails(pageText);
+    const email = findFirstValidEmail(pageText);
 
-    if (emailMatches && emailMatches.length > 0) {
-      const filteredEmails = emailMatches.filter(
-        email =>
-          !email.includes('noreply') &&
-          !email.includes('support') &&
-          !email.includes('no-reply') &&
-          !email.includes('example.com') &&
-          !email.includes('google.com')
-      );
-
-      if (filteredEmails.length > 0) {
-        return filteredEmails[0];
-      }
+    if (email) {
+      return email;
     }
     console.warn('No email detected on the page.');
     return null;
@@ -141,33 +123,35 @@ async function checkAccountSync() {
 }
 
 function initialize() {
-  checkAccountSync(); // Initial check
+  checkAccountSync();
 
-  const titleElement = document.querySelector('title');
-  if (titleElement) {
-    const observer = new MutationObserver(() => {
-      checkAccountSync();
-    });
-    observer.observe(titleElement, { childList: true });
-  }
+  let checkTimeout;
+  const debouncedCheck = () => {
+    clearTimeout(checkTimeout);
+    checkTimeout = setTimeout(checkAccountSync, 1000);
+  };
 
-  window.addEventListener('popstate', checkAccountSync);
+  window.addEventListener('popstate', debouncedCheck);
 
   const originalPushState = history.pushState;
   history.pushState = function (state, title, url) {
     const result = originalPushState.apply(this, arguments);
-    checkAccountSync();
+    debouncedCheck();
     return result;
   };
 
   const originalReplaceState = history.replaceState;
   history.replaceState = function (state, title, url) {
     const result = originalReplaceState.apply(this, arguments);
-    checkAccountSync();
+    debouncedCheck();
     return result;
   };
 
-  setInterval(checkAccountSync, 5000); // Fallback every 5 seconds
+  const titleElement = document.querySelector('title');
+  if (titleElement) {
+    const observer = new MutationObserver(debouncedCheck);
+    observer.observe(titleElement, { childList: true });
+  }
 }
 
 if (document.readyState === 'loading') {
@@ -175,30 +159,3 @@ if (document.readyState === 'loading') {
 } else {
   initialize();
 }
-
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  // For async responses, return true to keep the message channel open
-  let responseSent = false;
-
-  const handleRequest = async () => {
-    if (request.action === 'getPageInfo') {
-      const currentAccount = await getCurrentAccount();
-      sendResponse({
-        url: window.location.href,
-        title: document.title,
-        currentAccount: currentAccount,
-      });
-      responseSent = true;
-    } else if (request.action === 'detectCurrentAccount') {
-      const currentAccount = await getCurrentAccount();
-      sendResponse({
-        currentAccount: currentAccount,
-      });
-      responseSent = true;
-    }
-  };
-
-  handleRequest();
-
-  return responseSent; // Return true if sendResponse will be called asynchronously
-});

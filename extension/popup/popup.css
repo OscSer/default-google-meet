@@ -97,10 +97,6 @@ h1 {
   background: #e3f2fd;
 }
 
-.account-row.selected .account-name {
-  color: #1976d2;
-}
-
 .error {
   text-align: center;
   padding: 40px 20px;

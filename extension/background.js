@@ -24,11 +24,6 @@ chrome.alarms.onAlarm.addListener(alarm => {
 });
 
 // 2. Centralized Email Extraction + Improved Error Handling
-function extractEmailsFromText(text) {
-  const emails = extractEmails(text);
-  return emails.filter(email => !email.endsWith('google.com'));
-}
-
 async function getActiveGoogleAccounts() {
   try {
     const htmlAccounts = await getAccountsFromHTML();
@@ -109,7 +104,6 @@ async function getAccountsFromCookies() {
     return Array.from(allEmails).map((email, index) => ({
       email: email,
       authuser: index,
-      source: 'cookie',
     }));
   } catch (error) {
     console.error('Error fetching accounts from cookies:', error);
@@ -217,7 +211,7 @@ function validateAccount(account) {
     return false;
   }
 
-  if (account.authuser !== undefined && typeof account.authuser !== 'number') {
+  if (account.authuser === undefined || typeof account.authuser !== 'number') {
     return false;
   }
 
@@ -248,25 +242,16 @@ async function refreshAccounts() {
         const newAuthUser = index;
 
         if (existingAccount) {
-          if (
-            existingAccount.authuser !== newAuthUser ||
-            existingAccount.index !== index
-          ) {
+          if (existingAccount.authuser !== newAuthUser) {
             hasChanges = true;
-            return { ...existingAccount, authuser: newAuthUser, index: index };
+            return { ...existingAccount, authuser: newAuthUser };
           }
           return existingAccount;
         } else {
           hasChanges = true;
           return {
             email: browserAccount.email,
-            name: browserAccount.email.split('@')[0],
-            profilePicture: browserAccount.avatar || null,
-            id: browserAccount.id || null,
-            index: index,
             authuser: newAuthUser,
-            addedAt: Date.now(),
-            verified: true,
           };
         }
       });
@@ -288,13 +273,7 @@ async function refreshAccounts() {
 
 // Utility functions
 function getCurrentAccountFromURL(url) {
-  try {
-    const urlObj = new URL(url);
-    const authuser = urlObj.searchParams.get('authuser');
-    return authuser !== null ? parseInt(authuser, 10) : null;
-  } catch (e) {
-    return null;
-  }
+  return getAuthuserFromURL(url);
 }
 
 function constructMeetURL(originalUrl, accountIndex) {
@@ -418,14 +397,6 @@ const messageHandlers = {
   getTabId: (request, sender, sendResponse) => {
     sendResponse({ tabId: sender.tab?.id });
   },
-  getAccounts: async (request, sender, sendResponse) => {
-    try {
-      const accounts = await getAllGoogleAccounts();
-      sendResponse({ accounts });
-    } catch (error) {
-      sendResponse({ accounts: [], error: error.message });
-    }
-  },
   getDefaultAccount: async (request, sender, sendResponse) => {
     try {
       const defaultEmail = await getDefaultAccountEmail();
@@ -454,7 +425,6 @@ const messageHandlers = {
       }
 
       if (account.email) {
-        // Only save the email, not authuser (which can change with account reordering)
         await chrome.storage.sync.set({
           defaultEmail: account.email,
         });

@@ -11,3 +11,41 @@ function extractEmails(text) {
   }
   return Array.from(emails);
 }
+
+function findFirstEmailInText(text) {
+  const emailRegex = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}\b/gu;
+  const match = emailRegex.exec(text);
+  return match ? match[0] : null;
+}
+
+function extractEmailsFromText(text) {
+  const emails = extractEmails(text);
+  return emails.filter(email => !email.endsWith('google.com'));
+}
+
+function findFirstValidEmail(text) {
+  const email = findFirstEmailInText(text);
+  if (!email) return null;
+
+  if (
+    email.includes('noreply') ||
+    email.includes('support') ||
+    email.includes('no-reply') ||
+    email.includes('example.com') ||
+    email.includes('google.com')
+  ) {
+    return null;
+  }
+
+  return email;
+}
+
+function getAuthuserFromURL(url) {
+  try {
+    const urlObj = new URL(url);
+    const authuser = urlObj.searchParams.get('authuser');
+    return authuser !== null ? parseInt(authuser, 10) : null;
+  } catch (e) {
+    return null;
+  }
+}
