@@ -5,7 +5,6 @@
 - Install: `npm ci`
 - Build: `npm run build` → creates `build/extension.zip`
 - Format: `npm run format` | Check: `npm run format:check`
-- Pre-commit: Husky runs `npx lint-staged` on staged files
 - Release: `npm run release` | Dry: `npm run release:dry`
 - Tests: none in repo; manual testing in Chrome (`chrome://extensions` → Load unpacked `extension/`)
 
