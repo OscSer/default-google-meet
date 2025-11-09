@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const accountsContainer = document.getElementById('accounts-container');
   const retryBtn = document.getElementById('retry-btn');
 
+  const REVIEW_URL =
+    'https://chromewebstore.google.com/detail/google-meet-selector/kgejkghcnljcmpfnncbggbpioinaekfo/reviews';
+  const COFFEE_URL = 'https://buymeacoffee.com/oserna';
+
   let accounts = [];
   let defaultAccountEmail = null;
 
@@ -145,5 +149,29 @@ document.addEventListener('DOMContentLoaded', function () {
     loadAccounts();
   });
 
+  function setupExternalLinks() {
+    const reviewLink = document.getElementById('review-link');
+    const coffeeLink = document.getElementById('coffee-link');
+
+    const open = async url => {
+      try {
+        await chrome.tabs.create({ url });
+      } catch (error) {
+        console.error('Error opening link:', error);
+      }
+    };
+
+    reviewLink?.addEventListener('click', e => {
+      e.preventDefault();
+      open(REVIEW_URL);
+    });
+
+    coffeeLink?.addEventListener('click', e => {
+      e.preventDefault();
+      open(COFFEE_URL);
+    });
+  }
+
+  setupExternalLinks();
   loadAccounts();
 });
