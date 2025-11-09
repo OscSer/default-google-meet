@@ -1,27 +1,22 @@
 # AGENTS.md
 
-## Build/Lint/Test Commands
+## Build/Lint/Test
 
-- **Build**: `npm run build` - Creates extension.zip in build/ directory
-- **Format**: `npm run format` - Formats code with Prettier
-- **Format Check**: `npm run format:check` - Verifies Prettier formatting
-- **Pre-commit**: `npx lint-staged` - Runs formatting on staged files
-- **No test framework** - Manual testing required for Chrome extension
+- Install: `npm ci`
+- Build: `npm run build` → creates `build/extension.zip`
+- Format: `npm run format` | Check: `npm run format:check`
+- Pre-commit: Husky runs `npx lint-staged` on staged files
+- Release: `npm run release` | Dry: `npm run release:dry`
+- Tests: none in repo; manual testing in Chrome (`chrome://extensions` → Load unpacked `extension/`)
 
-## Code Style Guidelines
+## Code Style
 
-- **Declarations**: `const`/`let` preferred over `var`
-- **Promises**: Async/await pattern preferred over .then()
-- **Error Handling**: Try/catch blocks with `console.error()` for logging
-- **Chrome APIs**: Use chrome.runtime, chrome.storage, chrome.tabs, etc.
-- **Comments**: Minimal, code should be self-documenting
-
-## Commit Message Format
-
-Follow Conventional Commits:
-
-- **Structure**: `<type>(<scope>): <subject>`
-- **Types**: feat, fix, docs, style, refactor, test, chore
-- **Scope**: Optional, e.g. background, popup, content
-- **Subject**: Brief description, imperative mood, max 50 chars
-- **Body**: Optional, detailed explanation, max 72 chars per line
+- Language: JavaScript (no TypeScript). Use ES2015+ features.
+- Imports: No bundler. Use relative paths; `importScripts('scripts/utils.js')` in background; avoid dynamic/import maps.
+- Types: Prefer JSDoc for public functions when clarity helps.
+- Naming: camelCase vars/functions, PascalCase classes, UPPER_SNAKE_CASE constants; filenames kebab-case.
+- Formatting: Prettier v3 (singleQuote, semi, printWidth 80, trailingComma es5, arrowParens avoid).
+- Async: Prefer async/await; wrap Chrome APIs that support promises; avoid chained .then().
+- Error handling: try/catch; log with `console.error('context:', error)`; never swallow errors.
+- Chrome APIs: use `chrome.runtime`, `chrome.storage`, `chrome.tabs`, `chrome.alarms`, `chrome.cookies`; return `true` from listeners when responding async.
+- DOM/content scripts: guard nulls; avoid blocking loops; prefer querySelector and MutationObserver.
