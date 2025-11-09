@@ -1,4 +1,3 @@
-// 1. Alarms API for refreshing
 importScripts('scripts/utils.js');
 
 const REFRESH_INTERVAL_MINUTES = 30;
@@ -12,7 +11,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 function initializeAlarms() {
   chrome.alarms.create('refreshAccounts', {
-    delayInMinutes: INITIAL_REFRESH_DELAY_MIN, // Initial refresh after 1 minute
+    delayInMinutes: INITIAL_REFRESH_DELAY_MIN,
     periodInMinutes: REFRESH_INTERVAL_MINUTES,
   });
 }
@@ -23,7 +22,6 @@ chrome.alarms.onAlarm.addListener(alarm => {
   }
 });
 
-// 2. Centralized Email Extraction + Improved Error Handling
 async function getActiveGoogleAccounts() {
   try {
     const htmlAccounts = await getAccountsFromHTML();
@@ -111,7 +109,6 @@ async function getAccountsFromCookies() {
   }
 }
 
-// 3. Native promises for chrome.storage
 async function getStoredAccounts() {
   try {
     const result = await chrome.storage.sync.get(['accounts']);
@@ -161,10 +158,6 @@ async function migrateDefaultAccountToEmail() {
         // Keep old value for fallback during transition
         defaultAccount_legacy: storage.defaultAccount,
       });
-      console.log(
-        'Migrated default account from index to email:',
-        account.email
-      );
       return account.email;
     }
 
@@ -288,7 +281,6 @@ async function getAllGoogleAccounts() {
   }
 }
 
-// 5. Persistent Tab Tracking using chrome.storage.session
 function initializeTabTracking() {
   chrome.tabs.onRemoved.addListener(tabId => {
     chrome.storage.session.remove(String(tabId));
@@ -310,7 +302,6 @@ async function hasTabBeenRedirected(tabId) {
   return result[String(tabId)] === true;
 }
 
-// 6. Refactored onMessage listener and logic extraction
 async function handleAccountMismatch(url, tabId) {
   const currentAccount = getAuthuserFromURL(url);
 
@@ -339,7 +330,6 @@ async function handleAccountMismatch(url, tabId) {
         const fallbackAccount =
           storedAccounts[legacyStorage.defaultAccount_legacy];
         if (fallbackAccount) {
-          console.warn('Using legacy fallback for default account');
           return await handleAccountMismatchWithAccount(
             url,
             tabId,

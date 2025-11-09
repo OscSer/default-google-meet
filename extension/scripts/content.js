@@ -11,7 +11,6 @@ async function checkAccountSync() {
     });
 
     if (!tabResponse?.tabId) {
-      console.warn('Could not get tab ID.');
       return;
     }
 
@@ -32,7 +31,6 @@ async function checkAccountSync() {
 function initialize() {
   checkAccountSync();
 
-  // Observe URL changes without injecting extra unused detection logic
   let checkTimeout;
   const debouncedCheck = () => {
     clearTimeout(checkTimeout);

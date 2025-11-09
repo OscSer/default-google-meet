@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let accounts = [];
   let defaultAccountEmail = null;
-  let selectingIndex = null; // Track in-progress selection
+  let selectingIndex = null;
 
   function showContent() {
     contentDiv.classList.remove('hidden');
@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (error) {
       console.error('Error setting default account:', error);
     } finally {
-      selectingIndex = null; // Clear loading state
-      renderAccounts(); // Re-render UI
+      selectingIndex = null;
+      renderAccounts();
     }
   }
 
